@@ -1,0 +1,53 @@
+HEAD:
+  note: This is the place to add new notes, past versions should not be touched.
+  public: 
+
+1.4.0:
+  public: 
+    - Added getters for the flags in the Position V3 data item.
+    - Changed attribute type for final field in QuaternionV2 data item
+  timestamp: 2019 07 24 13 34 00 -5:00
+
+1.3.2:
+  public: 
+    - Fixed parsing issue with the README.md file.
+  timestamp: 2019 03 21 15 10 00 -05:00
+
+1.3.1:
+  public: 
+    - Updated project documentation.
+  timestamp: 2019 03 21 13 10 00 -05:00
+
+1.3.0:
+  public: 
+    - Added new Anchor Health V5 data item (0x014A)
+    - Added new Global Ping Timing Report V1 data item (0x014C)
+    - Added new Network Time data item (0x0149)
+    - Added new Deliver User Data V1 data item (0x010C)
+    - Added new Connection Report data item (0x0131)
+    - Added new Rx Stats CDP data item attribute.
+    - Added new App Settings Chunk (0x0121) and Image Discovery V1 (0x8009) data items.
+  timestamp: 2019 03 21 10 47 00 -05:00
+
+1.2.0:
+  public: 
+    - Added new User Defined V2 data item (0x0148)
+    - Added the TimedRxV5(0x802C), TickV4(0x802D), and PingV5(0x802F) data items
+  timestamp: 2018 10 11 07 16 00 -05:00
+
+1.1.0:
+  public: 
+    - Added new CDP data items — 0x0135-0x0142
+  timestamp: 2018 08 28 15 25 00 -05:00
+
+1.0.1:
+  public: 
+    - Fixed issue with initializing a list attribute to its default value
+    - Added new CDP Gyroscope Calibration data item (0x0130)
+  timestamp: 2018 06 20 16 08 00 -05:00
+
+1.0.0:
+  public: 
+    - Initial cdp-py public release
+  timestamp: 2018 06 05 14 37 00 -05:00
+

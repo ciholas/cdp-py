@@ -1,18 +1,22 @@
+# Ciholas, Inc. - www.ciholas.com
+# Licensed under: creativecommons.org/licenses/by/4.0
 # pylint: disable=trailing-whitespace, too-few-public-methods
 
 class CiholasSerialNumber():
     """Ciholas Serial Number Class Definition"""
-    
+
     def __init__(self, value=0):
-        if isinstance(value, str):
+        if isinstance(value, CiholasSerialNumber):
+            self.as_int = value.as_int
+        elif isinstance(value, str):
             self.as_int = (int)(value.replace(":", ""), 16)
         elif isinstance(value, int):
             self.as_int = value
         else:
             print("Invalid type for Ciholas Serial Number")
             exit(1)
-        self.string = "{:02x}:{:02x}:{:04x}".format(self.as_int >> 24, 
-                                                    (self.as_int >> 16) & 0xff, 
+        self.string = "{:02x}:{:02x}:{:04x}".format(self.as_int >> 24,
+                                                    (self.as_int >> 16) & 0xff,
                                                     self.as_int & 0xffff).upper()
 
     def __str__(self):

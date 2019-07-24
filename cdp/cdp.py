@@ -1,3 +1,5 @@
+# Ciholas, Inc. - www.ciholas.com
+# Licensed under: creativecommons.org/licenses/by/4.0
 # pylint: disable=trailing-whitespace, too-few-public-methods
 
 from collections import defaultdict
@@ -91,6 +93,13 @@ class CDP():
     def register_data_item(cls, di_class):
         cls.data_item_classes[di_class.type] = di_class
 
+    @classmethod
+    def get_known_types(cls):
+        string_list = []
+        for key in list(sorted(cls.data_item_classes.keys())):
+            string_list.append('0x{:04X}'.format(key))
+        print(', '.join(string_list))
+
 
 class DataItemAttribute():
     """Data Item Attribute: CDP Data Item Attribute Class Definition"""
@@ -183,7 +192,7 @@ class DIBoolAttr(DataItemAttribute):
 
     def __init__(self, name):
         super().__init__(name, '?', 1, False)
-        
+
 def nullstrip(s):
     """Return a string truncated at the first null character"""
     try:
@@ -192,12 +201,12 @@ def nullstrip(s):
         s = s[:s.index(b'\x00')]
     except ValueError:
         pass
-    
+
     try:
         # Decode bytes object using UTF-8 encoding scheme
         s = s.decode()
     except UnicodeDecodeError:
-        # String has byte(s) the cannot be decoded. Set to hex string representation. 
+        # String has byte(s) the cannot be decoded. Set to hex string representation.
         s = s.hex()
     return s
 
@@ -426,6 +435,7 @@ class DIListAttr():
         return data
 
 class DISerialNumberListAttr(DIListAttr):
+    """Data Item Attribute: CDP Data Item Serial Number Attribute Class Definition"""
 
     def __init__(self, name):
         super().__init__(name, CiholasSerialNumber)
@@ -443,6 +453,121 @@ class DISerialNumberListAttr(DIListAttr):
         data = b''
         for serial_number in lst:
             data += struct.pack("<I", serial_number.as_int)
+        return data
+
+class DIUInt32ListAttr(DIListAttr):
+    """Data Item Attribute: CDP Data Item Unsigned 32-bit Integer List Attribute Class Definition"""
+
+    def __init__(self, name):
+        super().__init__(name, None)
+
+    def _decode(self, data):
+        lst = []
+        data_size = len(data)
+        while data:
+            uint32, = struct.unpack("<I", data[:4])
+            data = data[4:]
+            lst.append(uint32)
+        return lst, data_size
+
+    def _encode(self, lst):
+        data = b''
+        for uint32 in lst:
+            data += struct.pack("<I", uint32)
+        return data
+
+
+class InterfaceRxStatsV1():
+    """Interface Reception Stats V1 Class Definition"""
+    type = 0x01
+    size = 21
+
+    def __init__(self):
+        self.interface_id = 0
+        self.rx_dt64 = 0
+        self.signal_strength = UWBSignalStrength()
+
+    def decode(self, data):
+        uwb_ss = UWBSignalStrength()
+        self.interface_id, \
+        self.rx_dt64, \
+        uwb_ss.fp_ampl1, \
+        uwb_ss.fp_ampl2, \
+        uwb_ss.fp_ampl3, \
+        uwb_ss.rx_preamble_acc, \
+        uwb_ss.cir_power, \
+        uwb_ss.std_noise = struct.unpack("<BQHHHHHH", data)
+        self.signal_strength = uwb_ss
+
+    def encode(self):
+        return struct.pack("<BQHHHHHH",
+                           self.interface_id,
+                           self.rx_dt64,
+                           self.signal_strength.fp_ampl1,
+                           self.signal_strength.fp_ampl2,
+                           self.signal_strength.fp_ampl3,
+                           self.signal_strength.rx_preamble_acc,
+                           self.signal_strength.cir_power,
+                           self.signal_strength.std_noise)
+
+    def __str__(self):
+        return "{}, {}, {}".format(self.interface_id,
+                                   self.rx_dt64,
+                                   self.signal_strength)
+
+
+class DIRxStatsAttribute(DIListAttr):
+    """Data Item Attribute: CDP Data Item Reception Stats Attribute Class Definition"""
+
+    # Mapping of the known Interface Rx Stats types to their respective class names.
+    ifc_stats_classes = { InterfaceRxStatsV1.type: InterfaceRxStatsV1 }
+
+    def __init__(self, name):
+        super().__init__(name, None)
+
+    def _decode(self, data):
+        rx_stats = []
+        header_size = 4
+
+        # Decode the Rx Stats Header
+        stats_type, num_ifcs, stats_len = struct.unpack("<BBH", data[:header_size])
+        data = data[header_size:]
+
+        # Attemp to parse out each Interface Rx Stats given the type in the header
+        try:
+            di_class = self.ifc_stats_classes[stats_type]
+            ifc_stats_size = di_class.size
+
+            # Decode each Interface Rx Stats
+            for i in range(num_ifcs):
+                ifc_stats = di_class()
+                ifc_stats.decode(data[:ifc_stats_size])
+                rx_stats.append(ifc_stats)
+                data = data[ifc_stats_size:]
+        except KeyError:
+            print("Rx Stats Attribute - Unrecognized Interface Rx Stats type: 0x{:02x}".format(stats_type))
+
+        data_size = header_size + stats_len
+        return rx_stats, data_size
+
+    def _encode(self, lst):
+        data = b''
+        stats_type = 0
+        num_ifcs = 0
+        ifc_stats_size = 0
+
+        if lst:
+            stats_type = lst[0].type
+            num_ifcs = len(lst)
+            ifc_stats_size = lst[0].size
+
+        stats_len = num_ifcs * ifc_stats_size
+        # Encode the Rx Stats Header
+        data += struct.pack("<BBH", stats_type, num_ifcs, stats_len)
+
+        # Encode each Interface Rx Stats
+        for ifc_stats in lst:
+            data += ifc_stats.encode()
         return data
 
 
@@ -470,7 +595,10 @@ class CDPDataItem():
                 # Check if data attribute has not been defined yet before initializing
                 # it to its default value
                 if not attr.name in dir(self):
-                    setattr(self, attr.name, attr.default)
+                    if attr.is_list:
+                        setattr(self, attr.name, list(attr.default))
+                    else:
+                        setattr(self, attr.name, attr.default)
 
         if key in dir(self):
             return getattr(self, key)

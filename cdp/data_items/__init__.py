@@ -1,7 +1,10 @@
 import inspect
 import sys
 import glob
-from cdp.cdp import CDP, CDPDataItem
+try:
+    from cdp_private import *
+except:
+    from cdp.cdp import CDP, CDPDataItem
 from os.path import dirname, basename
 import importlib
 
@@ -12,7 +15,7 @@ for module_file in module_files:
 
         # Import the module
         module = importlib.import_module(__package__+'.'+module_name)
-        
+
         # Emulate from X import *
         if "__all__" in module.__dict__:
             names = module.__dict__['__all__']
