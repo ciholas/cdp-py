@@ -112,8 +112,12 @@ class DataItemAttribute():
         self.is_list = False
 
     def _decode(self, data):
-        value, = struct.unpack("<" + self.format, data[:self.size])
-        return (value, self.size)
+        if len(data) < self.size:
+            return (self.default, self.size)
+        else:
+            value, = struct.unpack("<" + self.format, data[:self.size])
+            return (value, self.size)
+
 
     def _encode(self, value):
         return struct.pack("<" + self.format, value)
@@ -218,10 +222,14 @@ class DIFixedLengthStrAttr(DataItemAttribute):
         super().__init__(name, 's', size, '')
 
     def _decode(self, data):
-        fmt = str(self.size) + self.format  # Prepend count to 's'
-        value, = struct.unpack("<" + fmt, data[:self.size])
-        value = nullstrip(value)  # Convert bytes object to str
-        return (value, self.size)
+        # Convert bytes object to str
+        if len(data) < self.size:
+            return (self.default, self.size)
+        else:
+            fmt = str(self.size) + self.format  # Prepend count to 's'
+            value, = struct.unpack("<" + fmt, data[:self.size])
+            value = nullstrip(value)
+            return (value, self.size)  
 
     def _encode(self, value):
         value = value.encode()  # Convert str to bytes object
@@ -247,7 +255,6 @@ class DIVariableLengthStrAttr(DataItemAttribute):
         fmt = str(len(value)) + self.format  # Prepend count to 's'
         return struct.pack("<" + fmt, value)
 
-
 class DIFixedLengthBytesAttr(DataItemAttribute):
     """Data Item Attribute: CDP Data Item Fixed Length Bytes Attribute Class Definition"""
 
@@ -255,9 +262,12 @@ class DIFixedLengthBytesAttr(DataItemAttribute):
         super().__init__(name, 's', size, b'')
 
     def _decode(self, data):
-        fmt = str(self.size) + self.format  # Prepend count to 's'
-        value, = struct.unpack("<" + fmt, data[:self.size])
-        return (value, self.size)
+        if len(data) < self.size:
+            return (self.default, self.size)
+        else:
+            fmt = str(self.size) + self.format  # Prepend count to 's'
+            value, = struct.unpack("<" + fmt, data[:self.size])
+            return (value, self.size)
 
     def _encode(self, value):
         fmt = str(self.size) + self.format  # Prepend count to 's'
@@ -288,8 +298,11 @@ class DISerialNumberAttr(DataItemAttribute):
         super().__init__(name, 'I', 4, CiholasSerialNumber())
 
     def _decode(self, data):
-        serial_number, = struct.unpack("<" + self.format, data[:self.size])
-        return (CiholasSerialNumber(serial_number), self.size)
+        if len(data) < self.size:
+            return (self.default, self.size)
+        else:
+            serial_number, = struct.unpack("<" + self.format, data[:self.size])
+            return (CiholasSerialNumber(serial_number), self.size)
 
     def _encode(self, serial_number):
         return struct.pack("<" + self.format, serial_number.as_int)
@@ -358,14 +371,17 @@ class DISignalStrengthAttr(DataItemAttribute):
         super().__init__(name, 'HHHHHH', 12, UWBSignalStrength())
 
     def _decode(self, data):
-        uwb_ss = UWBSignalStrength()
-        uwb_ss.fp_ampl1, \
-            uwb_ss.fp_ampl2, \
-            uwb_ss.fp_ampl3, \
-            uwb_ss.rx_preamble_acc, \
-            uwb_ss.cir_power, \
-            uwb_ss.std_noise = struct.unpack("<" + self.format, data[:self.size])
-        return (uwb_ss, self.size)
+        if len(data) < self.size:
+            return (self.default, self.size)
+        else:
+            uwb_ss = UWBSignalStrength()
+            uwb_ss.fp_ampl1, \
+                uwb_ss.fp_ampl2, \
+                uwb_ss.fp_ampl3, \
+                uwb_ss.rx_preamble_acc, \
+                uwb_ss.cir_power, \
+                uwb_ss.std_noise = struct.unpack("<" + self.format, data[:self.size])
+            return (uwb_ss, self.size)
 
     def _encode(self, uwb_ss):
         return struct.pack("<" + self.format,
@@ -396,10 +412,13 @@ class DICondensedSignalStrengthAttr(DataItemAttribute):
         super().__init__(name, "bb", 2, UWBCondensedSignalStrength())
 
     def _decode(self, data):
-        uwb_css = UWBCondensedSignalStrength()
-        uwb_css.fp_rssi, \
-            uwb_css.tp_rssi = struct.unpack("<" + self.format, data[:self.size])
-        return (uwb_css, self.size)
+        if len(data) < self.size:
+            return (self.default, self.size)
+        else:
+            uwb_css = UWBCondensedSignalStrength()
+            uwb_css.fp_rssi, \
+                uwb_css.tp_rssi = struct.unpack("<" + self.format, data[:self.size])
+            return (uwb_css, self.size)
 
     def _encode(self, uwb_css):
         return struct.pack("<" + self.format, uwb_css.fp_rssi, uwb_css.tp_rssi)
@@ -455,6 +474,27 @@ class DISerialNumberListAttr(DIListAttr):
             data += struct.pack("<I", serial_number.as_int)
         return data
 
+class DIUInt16ListAttr(DIListAttr):
+    """Data Item Attribute: CDP Data Item Unsigned 16-bit Integer List Attribute Class Definition"""
+
+    def __init__(self, name):
+        super().__init__(name, None)
+
+    def _decode(self, data):
+        lst = []
+        data_size = len(data)
+        while data:
+            uint16, = struct.unpack("<H", data[:2])
+            data = data[2:]
+            lst.append(uint16)
+        return lst, data_size
+
+    def _encode(self, lst):
+        data = b''
+        for uint16 in lst:
+            data += struct.pack("<H", uint16)
+        return data
+
 class DIUInt32ListAttr(DIListAttr):
     """Data Item Attribute: CDP Data Item Unsigned 32-bit Integer List Attribute Class Definition"""
 
@@ -475,7 +515,6 @@ class DIUInt32ListAttr(DIListAttr):
         for uint32 in lst:
             data += struct.pack("<I", uint32)
         return data
-
 
 class InterfaceRxStatsV1():
     """Interface Reception Stats V1 Class Definition"""

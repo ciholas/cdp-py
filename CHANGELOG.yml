@@ -1,6 +1,19 @@
 HEAD:
-  note: This is the place to add new notes, past versions should not be touched.
   public: 
+  note: This is the place to add new notes, past versions should not be touched.
+
+1.5.0:
+  public: 
+    - Added new Bootload Progress data item (0x0160)
+    - Added new Topology Info data item (0x0157)
+    - Added new Ptp Info data item (0x0158)
+    - Added new NT Real Time Mapping data item (0x015A)
+    - Added the Set Persistent Property (0x015B), Get Persistent Property Value (0x015C), Get Persistent Property List (0x015D), Get Persistent Property Value Response (0x015E), and Get Persistent Property List Response (0x015F) data items.
+    - Added new Set Diagnostic LED data item (0x803D)
+    - Added new linkMD Cable Diagnostic data item (0x0163)
+    - Added new POE System Stats data item (0x0165)
+    - Added new Polar Coordinates V1 data item (0x0164)
+  timestamp: 2020 08 25 11 27 00 -5:00
 
 1.4.0:
   public: 

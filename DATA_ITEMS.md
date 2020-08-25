@@ -29,6 +29,16 @@ The ANCHOR STATUS ARRAY field in the Position's Anchor Status data item is an ar
 	    Returns the first path signal quality in decibels.
 	  get_total_path(self)
 	    Returns the total path signal quality in decibels.
+### PositionAnchorStatusStructureV4
+Position Anchor Status Class Definition V4. Public.   
+The ANCHOR STATUS ARRAY field in the Position's Anchor Status V4 data item is an array of these Anchor Status Structures.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| anchor_serial_number | 4B | The serial number of the anchor. |
+| anchor_interface_identifier | 1B | The interface identifier of the anchor. |
+| status | 1B | 0 = Anchor data is good.<br/>1 = Anchor is unknown.<br/>2 = Anchor data does not match other anchors.<br/>3 = Anchor data is inconsistent with previous data.<br/>4 = Network time not synchronized.<br/>5 = Anchor data is not good enough for tracking.<br/>6 = Duplicate anchor data.<br/>7 = Old data used to fill for a missed packed. |
+| quality | 2B | A number from 0 to 10,000, with 0 being poor quality and 10,000 being high quality. |
 ### Image
 Image Class Definition. Public.
 
@@ -133,8 +143,8 @@ This data type is used to report the current state of a device on the network.
 
 | Field Name    | Size | Description |
 |:---|:---:|:---|
-| serial_number | 4B | The infrastructure node's serial number. |
-| interface_id | 1B | The infrastructure node's interface identifier. |
+| serial_number | 4B | The device's serial number. |
+| interface_id | 1B | The device's interface identifier. |
 | x | 4B | The signed x-coordinate from the origin. |
 | y | 4B | The signed y-coordinate from the origin. |
 | z | 4B | The signed z-coordinate from the origin. |
@@ -289,6 +299,62 @@ This data type is used to track the amount of relative delay between ping recept
 | initial_ping_count | 4B | The number of starting Pings that were received (and thus the number of positions that were calculated). |
 | position_calculation_delay | 4B | Time from the reception of initial Ping to the start of the position calculation. |
 | arrival_time_counts | XB | An array of 1001 counters that track the number of Pings that were received X msec after the initial Ping, where the index in the array is X-1.<br/>Index 1000 represents all Pings that were received at least 1 full second later than the initial Ping. |
+### 0x015A - NtRealTimeMappingV1
+CDP Data Item: Ciholas Data Protocol NT Realtime Mapping V1 Data Item Definition. Public.   
+This data type is emitted periodically with information for mapping NT time to real time.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| network_time_previous | 8B | The Network Time as recorded approximately 1 second before this data item was transmitted. |
+| real_time_previous | 8B | The real time, measured in microseconds, as recorded approximately 1 second before this data item was transmitted. |
+| network_time_current | 8B | The most recently recorded Network Time available at the time this data item was transmitted. |
+| real_time_current | 8B | The most recently recorded real time, measured in microseconds, available at the time this data item was transmitted. |
+### 0x0160 - BootloadProgress
+CDP Data Item: Ciholas Data Protocol Bootload Progress Definition. Public.   
+This data type contains information on the progress of a bootload, including a rough percentage done.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| serial_number | 4B | The serial number of the device being bootloaded. |
+| last_received_total_path_rssi | 1B | Signal strength of the last signal received. |
+| last_heard_packet_time | 2B | The time that the last packet was heard in seconds. |
+| flags | 25B | A set of 25 bytes representing the sectors that have been received by the device. |
+| max_sectors_per_flag | 1B | The maximum number of sectors to be represented by a single bit in the flags attribute. |
+| last_max_sector_flag | 1B | The position of the last flag that represents the maximum number of sectors.<br/>All after will represent one less sector per flag. |
+| percentage | 2B | Estimated percentage of sectors completed.<br/>Guaranteed to be less than or equal to the actual. |
+### 0x0161 - AnchorPositionStatusV4
+CDP Data Item: Ciholas Data Protocol Anchor Position Status V4 Data Item Definition. Public.   
+This data type is used to report the status of an anchor that provided location data about the reporting device.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| tag_serial_number | 4B | The serial number of the tag. |
+| network_time | 8B | The Network Time of the position. |
+| anchor_status_array | 8XB | Array of Anchor Status Structures. See [PositionAnchorStatusStructureV4](#positionanchorstatusstructurev4) for details. |
+### 0x0163 - LinkMDStatus
+CDP Data Item: Ciholas Data Protocol LinkMD Diagnostic Status Data Item Definition. Public.   
+This data type is used to provide cable status such as wire fault type and distance to fault from the device.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| port_number | 1B | Ethernet switch port number. |
+| cable_condition | 1B | Ethernet cable condition.<br/>0 = Normal condition.<br/>1 = Open condition.<br/>2 = Shorted condition.<br/>3 = Cable Diagnostic failed.<br/>4 = Cable is connected so linkmd was not performed. |
+| distance_to_fault | 4B | Distance to fault condition, in cm, in case of open and shorted cable condition. |
+### 0x0164 - PolarCoordinatesV1
+CDP Data Item: Ciholas Data Protocol Polar Coordinates V1 Data Item Definition. Public.   
+This data type is used to report the position of the reporting device in polar coordinates.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| serial_number | 4B | The serial number of the reporting device. |
+| network_time | 8B | The timestamp when the sensor recorded the data.<br/>This value is represented in Network Time, which is roughly 15.65 picoseconds per tick. |
+| rho | 4B | The distance from the center of the anchor(s) to the tag in millimeters. |
+| theta | 4B | The azimuth angle pointing from the center of the anchor(s) to the tag in degrees.<br/> NOTE: This is a float value. |
+| phi | 4B | The elevation angle pointing from the center of the anchor(s) to the tag in degrees.<br/> NOTE: This is a float value. |
+| quality | 2B | The quality of the assessed position from 0 to 10000. |
+| anchor_count | 1B | The number of anchors involved in the calculation of this position. |
+| flags | 1B | 1 bit = inactive mode.<br/>1 bit = was not calculated.<br/>6 bits = unused. |
+| smoothing | 2B | The effective smoothing factor. |
 ### 0x8009 - ImageDiscoveryV1
 CDP Data Item: Ciholas Data Protocol Image Discovery V1 Data Item Definition. Public.   
 This data type contains information to inform the CUWB Network about the images the device is currently running. The CUWB network will use this information to determine if the device needs a firmware upgrade.

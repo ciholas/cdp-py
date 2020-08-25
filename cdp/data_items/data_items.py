@@ -617,7 +617,7 @@ class GyroscopeCalibration(CDPDataItem):
                   DIInt16Attr('scale')]  # The full-scale representation in degrees/sec.
 
 
-class ConnectionInfo:
+class PortInfo:
     """Connection Info Class Definition. Protected."""
 
     definition = [DIUInt16Attr('port_id'),  # The ID of the port. 4 bits = priority, 12 bits = port number.
@@ -638,7 +638,7 @@ class ConnectionInfo:
         self.info_timer = info_timer
 
 
-class ConnectionReport(CDPDataItem):
+class RstpReport(CDPDataItem):
     """CDP Data Item: Ciholas Data Protocol Connection Report Data Item Definition. Protected."""
 
     type = 0x0131
@@ -647,7 +647,7 @@ class ConnectionReport(CDPDataItem):
                   DIUInt16Attr('max_age'),  # The maximum length of a branch of a tree.
                   DIUInt16Attr('forward_delay'),  # Ports wait this long before forwarding packets after losing a neighbor.
                   DIUInt8Attr('num_ports'),  # The number of ports on the device, corresponds to number of connection Info units.
-                  DIListAttr('connection_info', ConnectionInfo)]  # Port-specific data.
+                  DIListAttr('port_info', PortInfo)]  # Port-specific data.
 
 
 class PositionV3(CDPDataItem):
@@ -724,8 +724,8 @@ class DeviceActivityState(CDPDataItem):
        This data type is used to report the current state of a device on the network."""
 
     type = 0x0137
-    definition = [DISerialNumberAttr('serial_number'),  # The infrastructure node's serial number.
-                  DIUInt8Attr('interface_id'),  # The infrastructure node's interface identifier.
+    definition = [DISerialNumberAttr('serial_number'),  # The device's serial number.
+                  DIUInt8Attr('interface_id'),  # The device's interface identifier.
                   DIInt32Attr('x'),  # The signed x-coordinate from the origin.
                   DIInt32Attr('y'),  # The signed y-coordinate from the origin.
                   DIInt32Attr('z'),  # The signed z-coordinate from the origin.
@@ -951,6 +951,215 @@ class GlobalPingTimingReportV1(CDPDataItem):
                   DIUInt32ListAttr('arrival_time_counts')]  # An array of 1001 counters that track the number of Pings that were received X msec after the initial Ping, where the index in the array is X-1. Index 1000 represents all Pings that were received at least 1 full second later than the initial Ping.
 
 
+class TopologyInfo(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Topology Info Data Item Definition. Protected.
+       This data type describes a physical connection between two entities. This includes DWETHs, Anchors, and other LLDP-enabled computers."""
+
+    type = 0x0157
+    definition = [DIBoolAttr('internal'),  # Indicates if the anchor is internal.
+                  DIUInt8Attr('links'),  # Indicates the number of active links on the anchor.
+                  DIBoolAttr('up'),  # Indicates if the link is being added or removed.
+                  DIFixedLengthStrAttr('sender', 32),  # The ID of the sender.
+                  DIFixedLengthStrAttr('sender_port', 32),  # The port ID of the sender.
+                  DIFixedLengthStrAttr('neighbor', 32),  # The neighbor's ID.
+                  DIFixedLengthStrAttr('neighbor_port', 32)]  # The neighbor's port ID.
+
+
+class PtpInfo(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol PTP Info Data Item Definition. Protected.
+       This data type is sent by anchors running PTP for time modeling purposes."""
+
+    type = 0x0158
+    definition = [DIFixedLengthBytesAttr('master_mac', 6),  # The mac address of the master clock.
+                  DISerialNumberAttr('master_serial'),  # The serial number of the master clock.
+                  DIInt64Attr('master_to_slave'),  # The time a packet took to travel from the master clock to the slave clock in nanoseconds.
+                  DIInt64Attr('slave_to_master'),  # The time a packet took to travel from the slave clock to the master clock in nanoseconds.
+                  DIInt64Attr('mean_path_delay'),  # The onboard calculated average of the travel times in nanoseconds.
+                  DIInt64Attr('offset'),  # The offset of the slave from the master in nanoseconds.
+                  DIInt64Attr('model')]  # The offset calculated by the time model in nanoseconds.
+
+
+class NtRealTimeMappingV1(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol NT Realtime Mapping V1 Data Item Definition. Public.
+       This data type is emitted periodically with information for mapping NT time to real time."""
+
+    type = 0x015A
+    definition = [DIUInt64Attr('network_time_previous'),  # The Network Time as recorded approximately 1 second before this data item was transmitted.
+                  DIUInt64Attr('real_time_previous'),  # The real time, measured in microseconds, as recorded approximately 1 second before this data item was transmitted.
+                  DIUInt64Attr('network_time_current'),  # The most recently recorded Network Time available at the time this data item was transmitted.
+                  DIUInt64Attr('real_time_current')]  # The most recently recorded real time, measured in microseconds, available at the time this data item was transmitted.
+
+
+class SetPersistentProperty(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Set Persistent Property Definition. Protected.
+       This data type sets or clears a persistent property on a device."""
+
+    type = 0x015B
+    definition = [DISerialNumberAttr('serial_number'),  # The serial number of the device to set the persistent property for.
+                  DIUInt8Attr('config'),  # Whether to set or clear the persistent property. 1 = Set. 0 = Clear.
+                  DIUInt16Attr('property_id'),  # The ID of the property to set or clear.
+                  DIVariableLengthBytesAttr('property_value')]  # The value of the property.
+
+    def clear_persistent_property(self):
+        """Sets the config field to 0 to clear the persistent property."""
+        self.config = 0
+
+    def set_persistent_property(self):
+        """Sets the config field to 1 to set the persistent property."""
+        self.config = 1
+
+
+class GetPersistentPropertyValue(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Get Persistent Property Value Definition. Protected.
+       This data type retrieves the value of a persistent property on the device."""
+
+    type = 0x015C
+    definition = [DISerialNumberAttr('serial_number'),  # The serial number of the device to get the persistent property from.
+                  DIUInt16Attr('property_id')]  # The ID of the property to get.
+
+
+class GetPersistentPropertyList(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Get Persistent Property List Definition. Protected.
+       This data type retrieves a list of the persistent properties on a device."""
+
+    type = 0x015D
+    definition = [DISerialNumberAttr('serial_number')]  # The serial number of the device to get the persistent properties from.
+
+
+class GetPersistentPropertyValueResponse(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Get Persistent Property Value Response Definition. Protected.
+       This data type retrieves the response of a persistent property on a device."""
+
+    type = 0x015E
+    definition = [DISerialNumberAttr('serial_number'),  # The serial number of the device the response is coming from.
+                  DIUInt16Attr('property_id'),  # Identifier of the requested persistent property.
+                  DIVariableLengthBytesAttr('value')]  # Value of the requested persistent property.
+
+
+class GetPersistentPropertyListResponse(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Get Persistent Property List Response Definition. Protected."""
+
+    type = 0x015F
+    definition = [DISerialNumberAttr('serial_number'),  # The serial number of the device the responses are coming from.
+                  DIUInt16ListAttr('property_ids')]  # Identifiers of the requested list of the device's persistent properties.
+
+
+class BootloadProgress(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Bootload Progress Definition. Public.
+       This data type contains information on the progress of a bootload, including a rough percentage done."""
+
+    type = 0x0160
+    definition = [DISerialNumberAttr('serial_number'),  # The serial number of the device being bootloaded.
+                  DIUInt8Attr('last_received_total_path_rssi'),  # Signal strength of the last signal received.
+                  DIUInt16Attr('last_heard_packet_time'),  # The time that the last packet was heard in seconds.
+                  DIFixedLengthBytesAttr('flags', 25),  # A set of 25 bytes representing the sectors that have been received by the device.
+                  DIUInt8Attr('max_sectors_per_flag'),  # The maximum number of sectors to be represented by a single bit in the flags attribute.
+                  DIUInt8Attr('last_max_sector_flag'),  # The position of the last flag that represents the maximum number of sectors. All after will represent one less sector per flag.
+                  DIUInt16Attr('percentage')]  # Estimated percentage of sectors completed. Guaranteed to be less than or equal to the actual.
+
+
+class PositionAnchorStatusStructureV4:
+    """Position Anchor Status Class Definition V4. Public.
+       The ANCHOR STATUS ARRAY field in the Position's Anchor Status V4 data item is an array of these Anchor Status Structures."""
+
+    definition = [DISerialNumberAttr('anchor_serial_number'), # The serial number of the anchor.
+                  DIUInt8Attr('anchor_interface_identifier'), # The interface identifier of the anchor.
+                  DIUInt8Attr('status'), # 0 = Anchor data is good. 1 = Anchor is unknown. 2 = Anchor data does not match other anchors. 3 = Anchor data is inconsistent with previous data. 4 = Network time not synchronized. 5 = Anchor data is not good enough for tracking. 6 = Duplicate anchor data. 7 = Old data used to fill for a missed packed.
+                  DIUInt16Attr('quality')] # A number from 0 to 10,000, with 0 being poor quality and 10,000 being high quality.
+
+    def __init__(self, anchor_serial_number=0, anchor_interface_identifier=0, status=0, quality=0):
+        self.anchor_serial_number = CiholasSerialNumber(anchor_serial_number)
+        self.anchor_interface_id = anchor_interface_identifier
+        self.status = status
+        self.quality = quality
+
+    def __str__(self):
+        return "{}-{}, {}, {}".format(self.anchor_serial_number, self.anchor_interface_id, self.status, self.quality)
+
+
+class AnchorPositionStatusV4(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Anchor Position Status V4 Data Item Definition. Public.
+       This data type is used to report the status of an anchor that provided location data about the reporting device."""
+
+    type = 0x0161
+    definition = [DISerialNumberAttr('tag_serial_number'),  # The serial number of the tag.
+                  DIUInt64Attr('network_time'),  # The Network Time of the position.
+                  DIListAttr('anchor_status_array', PositionAnchorStatusStructureV4)]  # Array of Anchor Status Structures.
+
+
+class LinkMDStatus(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol LinkMD Diagnostic Status Data Item Definition. Public.
+       This data type is used to provide cable status such as wire fault type and distance to fault from the device."""
+
+    type = 0x0163
+    definition = [DIUInt8Attr('port_number'),  # Ethernet switch port number.
+                  DIUInt8Attr('cable_condition'),  # Ethernet cable condition. 0 = Normal condition. 1 = Open condition. 2 = Shorted condition. 3 = Cable Diagnostic failed. 4 = Cable is connected so linkmd was not performed.
+                  DIUInt32Attr('distance_to_fault')]  # Distance to fault condition, in cm, in case of open and shorted cable condition.
+
+
+class PolarCoordinatesV1(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Polar Coordinates V1 Data Item Definition. Public.
+       This data type is used to report the position of the reporting device in polar coordinates."""
+
+    type = 0x0164
+    definition = [DISerialNumberAttr('serial_number'),  # The serial number of the reporting device.
+                  DIUInt64Attr('network_time'),  # The timestamp when the sensor recorded the data. This value is represented in Network Time, which is roughly 15.65 picoseconds per tick.
+                  DIUInt32Attr('rho'),  # The distance from the center of the anchor(s) to the tag in millimeters.
+                  DIFloatAttr('theta'),  # The azimuth angle pointing from the center of the anchor(s) to the tag in degrees.  NOTE: This is a float value.
+                  DIFloatAttr('phi'),  # The elevation angle pointing from the center of the anchor(s) to the tag in degrees.  NOTE: This is a float value.
+                  DIUInt16Attr('quality'),  # The quality of the assessed position from 0 to 10000.
+                  DIUInt8Attr('anchor_count'),  # The number of anchors involved in the calculation of this position.
+                  DIUInt8Attr('flags'),  # 1 bit = inactive mode. 1 bit = was not calculated. 6 bits = unused.
+                  DIUInt16Attr('smoothing')]  # The effective smoothing factor.
+
+
+class PoeSystemStats(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol POE MCU System Status Data Item Definition. Protected.
+        This data type is used to report POE system status."""
+
+    type = 0x0165
+    definition = [DIUInt64Attr('last_power_outage'),  # Time since last power outage in ms.
+                  DIUInt64Attr('system_uptime'), # System uptime in ms.
+                  DIUInt32Attr('power_limit_in'), # Power limit of input in mW.
+                  DIUInt32Attr('power_limit_out'), # Power limit of output in mW.
+                  DIUInt32Attr('power_limit_local'), # Local power limit in mW.
+                  DIInt32Attr('p1_pair_voltage_1'), # Ethernet port 1 PR12 voltage in mV.
+                  DIInt32Attr('p1_pair_voltage_2'), # Ethernet port 1 PR36 voltage in mV.
+                  DIInt32Attr('p1_pair_voltage_3'), # Ethernet port 1 PR45 voltage in mV.
+                  DIInt32Attr('p1_pair_voltage_4'), # Ethernet port 1 PR78 voltage in mV.
+                  DIInt32Attr('p2_pair_voltage_1'), # Ethernet port 2 PR12 voltage in mV.
+                  DIInt32Attr('p2_pair_voltage_2'), # Ethernet port 2 PR36 voltage in mV.
+                  DIInt32Attr('p2_pair_voltage_3'), # Ethernet port 2 PR45 voltage in mV.
+                  DIInt32Attr('p2_pair_voltage_4'), # Ethernet port 2 PR78 voltage in mV.
+                  DIUInt16Attr('veth'), # Ethernet voltage in mV.
+                  DIUInt16Attr('power_outage_count'), # Number of power outages since boot.
+                  DIInt16Attr('p1_current'), # Ethernet port 1 current in mA.
+                  DIInt16Attr('p2_current'), # Ethernet port 2 current in mA.
+                  DIUInt8Attr('bot_fet'), # Bottom FET status formatted as a port mask.
+                  DIUInt8Attr('top_fet'), # Top FET status formatted as a port mask.
+                  DIUInt8Attr('desired_class'), # Class requested by the device.
+                  DIUInt8Attr('granted_class'), # Class granted to the device.
+                  DIUInt8Attr('downstream_requested_class'), # Downstream requested class.
+                  DIUInt8Attr('downstream_granted_class'), # Downstream granted class.
+                  DIUInt8Attr('lposc_cal'), # Calibration percentage for the low power oscillator.
+                  DIUInt8Attr('mps_mode'), # MPS mode. 0 = OFF, 1 = ON, 2 = AUTO, 3 = PAUSED.
+                  DIUInt8Attr('state'), # State machine state.
+                  DIUInt8Attr('upstream_port'), # Port to treat as upstream.
+                  DIUInt8Attr('mps_active_last_log'), # Power measurement MPS state.
+                  DIUInt8Attr('poe_p1_mode'), # POE Port 1 mode. 0 = BOOT, 1 = OFF, 2 = INPUT, 3 = OUTPUT, 4 = CLASSIFYING.
+                  DIUInt8Attr('poe_p2_mode'), # POE Port 2 mode. 0 = BOOT, 1 = OFF, 2 = INPUT, 3 = OUTPUT, 4 = CLASSIFYING.
+                  DIUInt8Attr('poe_p1_pair_polarity_1'), # POE port 1 PR12 polarity. 0 = OPEN, 1 = NEGATIVE, 2 = POSITIVE.
+                  DIUInt8Attr('poe_p1_pair_polarity_2'), # POE port 1 PR36 polarity. 0 = OPEN, 1 = NEGATIVE, 2 = POSITIVE.
+                  DIUInt8Attr('poe_p1_pair_polarity_3'), # POE port 1 PR45 polarity. 0 = OPEN, 1 = NEGATIVE, 2 = POSITIVE.
+                  DIUInt8Attr('poe_p1_pair_polarity_4'), # POE port 1 PR78 polarity. 0 = OPEN, 1 = NEGATIVE, 2 = POSITIVE.
+                  DIUInt8Attr('poe_p2_pair_polarity_1'), # POE port 2 PR12 polarity. 0 = OPEN, 1 = NEGATIVE, 2 = POSITIVE.
+                  DIUInt8Attr('poe_p2_pair_polarity_2'), # POE port 2 PR36 polarity. 0 = OPEN, 1 = NEGATIVE, 2 = POSITIVE.
+                  DIUInt8Attr('poe_p2_pair_polarity_3'), # POE port 2 PR45 polarity. 0 = OPEN, 1 = NEGATIVE, 2 = POSITIVE.
+                  DIUInt8Attr('poe_p2_pair_polarity_4'), # POE port 2 PR78 polarity. 0 = OPEN, 1 = NEGATIVE, 2 = POSITIVE.
+                  DIUInt8Attr('poe_p1_source'), # Port 1 POE source. 0 = UNKNOWN, 1 = INJECTOR, 2 = PSE, 3 = INVALID.
+                  DIUInt8Attr('poe_p2_source')] # Port 2 POE source. 0 = UNKNOWN, 1 = INJECTOR, 2 = PSE, 3 = INVALID.
+
+
 class Image:
     """Image Class Definition. Public."""
 
@@ -1024,6 +1233,44 @@ class PingV5(CDPDataItem):
                   DISignalStrengthAttr('signal_strength'),  # The signal strength data of the reception.
                   DIUInt8Attr('interface_id'),  # Identifier of the interface on which this anchor received the UWB Beacon.
                   DIVariableLengthBytesAttr('payload')]  # Additional data received in the UWB Beacon.
+
+
+class LEDStates:
+    """LED States Class Definition. Protected."""
+
+    definition = [DIUInt16Attr('start_time_offset'),  # Offset from now for start time of Diagnostic LEDs in milliseconds.
+                  DIUInt16Attr('led_duration'),  # On Time of the Diagnostic LEDs in milliseconds.
+                  DIUInt16Attr('led_period'),  # Period in milliseconds that this LED state should repeat.
+                  DIUInt8Attr('red'),  # 0 -> Off, 255 -> On, 1 to 254 -> PWM.
+                  DIUInt8Attr('green'),  # 0 -> Off, 255 -> On, 1 to 254 -> PWM.
+                  DIUInt8Attr('blue')]  # 0 -> Off, 255 -> On, 1 to 254 -> PWM.
+
+    def __init__(self, start_time_offset=0, led_duration=0, led_period=0, red=0, green=0, blue=0):
+        self.start_time_offset = start_time_offset
+        self.led_duration = led_duration
+        self.led_period = led_period
+        self.red = red
+        self.green = green
+        self.blue = blue
+
+    def __str__(self):
+        return ", ".join(str(getattr(self, attr.name)) for attr in self.definition)
+
+
+class SetDiagnosticLED(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Set Diagnostic LED Data Item Definition. Protected.
+       This data type allows setting the Diagnostic LEDs on a device."""
+
+    type = 0x803D
+    definition = [DISerialNumberAttr('destination_group'),  # Destination group for the command.
+                  DIListAttr('led_states', LEDStates)]  # Array of Diagnostic LED Structures.
+
+    def add_led_states(self, start_time_offset=0, led_duration=0,
+                       led_period=0, red=0, green=0, blue=0):
+        """Adds an LED State object to the LED states list."""
+        self.led_states.append(LEDStates(start_time_offset, led_duration,
+                                         led_period, red, green, blue))
+
 
 
 # When adding a new data item to cdp-py, follow the template given below.
