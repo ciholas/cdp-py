@@ -2,38 +2,40 @@
 # Licensed under: creativecommons.org/licenses/by/4.0
 # pylint: disable=trailing-whitespace, too-few-public-methods
 
-class CiholasSerialNumber():
+class CiholasSerialNumber(int):
     """Ciholas Serial Number Class Definition"""
 
-    def __init__(self, value=0):
-        if isinstance(value, CiholasSerialNumber):
-            self.as_int = value.as_int
+    def __new__(cls, value=0):
+        value_as_int = 0
+        if isinstance(value, int):
+            value_as_int = int(value)
         elif isinstance(value, str):
-            self.as_int = (int)(value.replace(":", ""), 16)
-        elif isinstance(value, int):
-            self.as_int = value
+            value_as_int = (int)(value.replace(":", ""), 16)
         else:
-            print("Invalid type for Ciholas Serial Number")
-            exit(1)
-        self.string = "{:02x}:{:02x}:{:04x}".format(self.as_int >> 24,
-                                                    (self.as_int >> 16) & 0xff,
-                                                    self.as_int & 0xffff).upper()
+            raise ValueError("Invalid type for Ciholas Serial Number")
+        obj = int.__new__(cls, value_as_int)
+        obj.as_int = value_as_int
+        obj.string = "{:02x}:{:02x}:{:04x}".format(obj.as_int >> 24,
+                                                    (obj.as_int >> 16) & 0xff,
+                                                    obj.as_int & 0xffff).upper()
+        return obj
+
+    def __int__(self):
+        return self.as_int
 
     def __str__(self):
         return self.string
 
     def __eq__(self, other):
-        if isinstance(other, CiholasSerialNumber):
-            return self.as_int == other.as_int
         if isinstance(other, int):
-            return self.as_int == other
+            return self.__int__() == other
         if isinstance(other, str):
             # Other must be of the form 'XX:XX:XXXX'
-            return self.string == other
+            return self.__str__() == other
         return False
 
     def __hash__(self):
-        return hash(self.as_int)
+        return hash(self.__int__())
 
     def __repr__(self):
         return self.__str__()

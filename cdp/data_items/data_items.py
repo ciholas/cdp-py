@@ -585,7 +585,7 @@ class TemperatureV1(CDPDataItem):
     type = 0x012E
     definition = [DIUInt64Attr('network_time'), # The timestamp when the sensor recorded the data. This value is represented in Network Time, which is roughly 15.65 picoseconds per tick.
                   DIInt16Attr('temperature'), # The two's complement temperature value.
-                  DIUInt32Attr('scale')] # The full-scale representation in degrees Celsius.
+                  DIUInt16Attr('scale')] # The full-scale representation in degrees Celsius.
 
 
 class PositionV2(CDPDataItem):
@@ -750,7 +750,7 @@ class DeviceHardwareStatusV2(CDPDataItem):
 
 
 class AccelerometerV2(CDPDataItem):
-    """CDP Data Item: Ciholas Data Protocol Accelerometer V2 Data Item Definition. Current in v3.3.
+    """CDP Data Item: Ciholas Data Protocol Accelerometer V2 Data Item Definition. Replaced by 0x17A in v4.5.
        This data type is used to report the accelerometer data from an onboard MPU-9250."""
 
     type = 0x0139
@@ -763,7 +763,7 @@ class AccelerometerV2(CDPDataItem):
 
 
 class GyroscopeV2(CDPDataItem):
-    """CDP Data Item: Ciholas Data Protocol Gyroscope V2 Data Item Definition. Current in v3.3.
+    """CDP Data Item: Ciholas Data Protocol Gyroscope V2 Data Item Definition. Replaced by 0x17B in v4.5.
        This data type is used to report the gyroscope data from an onboard MPU-9250."""
 
     type = 0x013A
@@ -776,7 +776,7 @@ class GyroscopeV2(CDPDataItem):
 
 
 class MagnetometerV2(CDPDataItem):
-    """CDP Data Item: Ciholas Data Protocol Magnetometer V2 Data Item Definition. Current in v3.3.
+    """CDP Data Item: Ciholas Data Protocol Magnetometer V2 Data Item Definition. Replaced by 0x17C in v4.5.
        This data type is used to report the magnetometer data from an onboard MPU-9250."""
 
     type = 0x013B
@@ -1160,6 +1160,85 @@ class PoeSystemStats(CDPDataItem):
                   DIUInt8Attr('poe_p2_source')] # Port 2 POE source. 0 = UNKNOWN, 1 = INJECTOR, 2 = PSE, 3 = INVALID.
 
 
+class ImageV2:
+    """Image Class V2 Definition. Public"""
+
+    definition = [DIUInt8Attr('image_type'), # The type of image this data represents.
+                  DIFixedLengthStrAttr('version', 32), # The version string of the image, null-terminated. If the string is less than the max (32B), it is padded with junk data.
+                  DIFixedLengthBytesAttr('sha1', 20), # The IVSHA1 of the image with a maximum size of 20B.
+                  DIUInt32Attr('image_length'), # The number of bytes the image contains.
+                  DIUInt16Attr('flags'), # Flags that can extend the meaning of this image information.
+                  DIVariableLengthBytesAttr('options')] # Additional information will be stored here, per the flags.
+
+    def __init__(self, type=0, version=0, sha1=0, image_length=0, flags=0, options=b'', data=None):
+        if data:
+            self._decode(data)
+        else:
+            self.image_type = type
+            self.version = version
+            self.sha1 = sha1
+            self.image_length = image_length
+            self.flags = flags
+            self.options = options
+
+    def __str__(self):
+        return "{}, {}, {}, {}, {}, {}".format(self.image_type, self.version, self.sha1.hex(), self.image_length, self.flags, self.options)
+
+    def _decode(self, data):
+        """Decodes a byte array as the ImageV2 object."""
+        for attr in ImageV2.definition:
+            value, size = attr._decode(data)
+            data = data[size:]
+            setattr(self, attr.name, value)
+
+class BoundingBoxReport(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Bounding Box Report Data Item Definition. Public.
+       This data type is used to report the bounding box parameters."""
+
+    type = 0x016A
+    definition = [DIUInt32Attr('min_x'), # The minimum x-coordinate of the bounding zone in millimeters.
+                  DIUInt32Attr('min_y'), # The minimum y-coordinate of the bounding zone in millimeters.
+                  DIUInt32Attr('min_z'), # The minimum z-coordinate of the bounding zone in millimeters.
+                  DIUInt32Attr('max_x'), # The maximum x-coordinate of the bounding zone in millimeters.
+                  DIUInt32Attr('max_y'), # The maximum y-coordinate of the bounding zone in millimeters.
+                  DIUInt32Attr('max_z')] # The maximum z-coordinate of the bounding zone in millimeters.
+
+
+class BoundingCylinderReport(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Bounding Cylinder Report Data Item Definition. Public.
+       This data type is used to report the bounding cylinder parameters."""
+
+    type = 0x016B
+    definition = [DIUInt32Attr('x'), # The x-coordinate of the bottom center of the cylinder in millimeters.
+                  DIUInt32Attr('y'), # The y-coordinate of the bottom center of the cylinder in millimeters.
+                  DIUInt32Attr('z'), # The z-coordinate of the bottom center of the cylinder in millimeters.
+                  DIUInt32Attr('radius'), # The radius of the cylinder in millimeters.
+                  DIUInt32Attr('height')] # The height of the cylinder in millimeters.
+
+
+class ImageDiscoveryV2(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Image Discovery V2 Data Item Definition. Public.
+    This data type contains information to inform the CUWB Network about the images the device is currently running. The CUWB network will use this information to determine if the device needs a firmware upgrade."""
+
+    type = 0x0171
+    definition = [DIUInt8Attr('vid'), # Virtual Vendor ID for device images.
+                  DIUInt8Attr('pid'), # Virtual Product ID for device images.
+                  DIUInt8Attr('running_image_type'), # Type of the current running image.
+                  DIVariableLengthBytesAttr('tlvs')] # An array of TLV (Type Length Value) entries. Every entry will be prefixed with one byte for Type and one byte for Length.
+                                                     # 1 = Sector size (size 2 bytes). 2 = No Change Echo (size 0 bytes). 3 = Bootloading Timeout (size 1 byte). 4 = Image Information V2 (size varies).
+
+def ImageNotificationV2(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Image Notification V2 Data Item Definition. Public.
+    This data type notifies a device or device group of what images the CUWB Network can upload to them."""
+
+    type = 0x0172
+    definition = [DIUInt8Attr('vid'), # Virtual Vendor ID for device images.
+                  DIUInt8Attr('pid'), # Virtual Product ID for device images.
+                  DIUInt8Attr('running_image_type'), # Type of the current running image.
+                  DIVariableLengthBytesAttr('tlvs')] # An array of TLV (Type Length Value) entries. Every entry will be prefixed with one byte for Type and one byte for Length.
+                                                     # 1 = Sector size (size 2 bytes). 2 = No Change Echo (size 0 bytes). 3 = Bootloading Timeout (size 1 byte). 4 = Image Information V2 (size varies).
+
+
 class Image:
     """Image Class Definition. Public."""
 
@@ -1174,6 +1253,150 @@ class Image:
 
     def __str__(self):
         return "{}, {}, {}".format(self.type, self.version, self.sha1.hex())
+
+
+class PoeSystemStatsV2(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol POE MCU System Status V2 Data Item Definition. Protected.
+        This data type is used to report POE system status."""
+
+    type = 0x0173
+    definition = [DIUInt64Attr('last_power_outage'),  # Time since last power outage in ms.
+                  DIUInt64Attr('system_uptime'), # System uptime in ms.
+                  DIUInt32Attr('power_limit_in'), # Power limit of input in mW.
+                  DIUInt32Attr('power_limit_out'), # Power limit of output in mW.
+                  DIUInt32Attr('power_limit_local'), # Local power limit in mW.
+                  DIInt32Attr('p1_pair_voltage_1'), # Ethernet port 1 PR12 voltage in mV.
+                  DIInt32Attr('p1_pair_voltage_2'), # Ethernet port 1 PR36 voltage in mV.
+                  DIInt32Attr('p1_pair_voltage_3'), # Ethernet port 1 PR45 voltage in mV.
+                  DIInt32Attr('p1_pair_voltage_4'), # Ethernet port 1 PR78 voltage in mV.
+                  DIInt32Attr('p2_pair_voltage_1'), # Ethernet port 2 PR12 voltage in mV.
+                  DIInt32Attr('p2_pair_voltage_2'), # Ethernet port 2 PR36 voltage in mV.
+                  DIInt32Attr('p2_pair_voltage_3'), # Ethernet port 2 PR45 voltage in mV.
+                  DIInt32Attr('p2_pair_voltage_4'), # Ethernet port 2 PR78 voltage in mV.
+                  DIInt32Attr('p1_current'), # Ethernet port 1 current in uA.
+                  DIInt32Attr('p2_current'), # Ethernet port 2 current in uA.
+                  DIInt32Attr('local_current'), # Local current in uA.
+                  DIUInt16Attr('veth'), # Ethernet voltage in mV.
+                  DIUInt16Attr('power_outage_count'), # Number of power outages since boot.
+                  DIUInt8Attr('fets_status'), # Top and Bottom FET status formatted as a port mask. P2-PR78, P2-PR12, P1-PR78, P1-PR12, P2-PR45, P2-PR36, P1-PR45, P1-PR36.
+                  DIUInt8Attr('desired_class'), # Class requested by the device.
+                  DIUInt8Attr('granted_class'), # Class granted to the device.
+                  DIUInt8Attr('downstream_requested_class'), # Downstream requested class.
+                  DIUInt8Attr('downstream_granted_class'), # Downstream granted class.
+                  DIUInt8Attr('mps_mode'), # MPS mode. MPS mode. 0 = UNKNOWN, 1 = OFF, 2 = TYPE 1/2, 3 = TYPE 3/4 CLASS 1-4, 4 = TYPE 3/4 CLASS 5-8.
+                  DIUInt8Attr('state'), # State machine state.
+                  DIUInt8Attr('upstream_port'), # Port to treat as upstream.
+                  DIUInt8Attr('mps_active_last_log'), # Power measurement MPS state.
+                  DIUInt8Attr('poe_p1_mode'), # POE Port 1 mode. 0 = BOOT, 1 = OFF, 2 = INPUT, 3 = OUTPUT, 4 = CLASSIFYING.
+                  DIUInt8Attr('poe_p2_mode'), # POE Port 2 mode. 0 = BOOT, 1 = OFF, 2 = INPUT, 3 = OUTPUT, 4 = CLASSIFYING.
+                  DIUInt8Attr('poe_p1_pair_polarity_1'), # POE port 1 PR12 polarity. 0 = OPEN/NEGATIVE, 1 = POSITIVE.
+                  DIUInt8Attr('poe_p1_pair_polarity_2'), # POE port 1 PR36 polarity. 0 = OPEN/NEGATIVE, 1 = POSITIVE.
+                  DIUInt8Attr('poe_p1_pair_polarity_3'), # POE port 1 PR45 polarity. 0 = OPEN/NEGATIVE, 1 = POSITIVE.
+                  DIUInt8Attr('poe_p1_pair_polarity_4'), # POE port 1 PR78 polarity. 0 = OPEN/NEGATIVE, 1 = POSITIVE.
+                  DIUInt8Attr('poe_p2_pair_polarity_1'), # POE port 2 PR12 polarity. 0 = OPEN/NEGATIVE, 1 = POSITIVE.
+                  DIUInt8Attr('poe_p2_pair_polarity_2'), # POE port 2 PR36 polarity. 0 = OPEN/NEGATIVE, 1 = POSITIVE.
+                  DIUInt8Attr('poe_p2_pair_polarity_3'), # POE port 2 PR45 polarity. 0 = OPEN/NEGATIVE, 1 = POSITIVE.
+                  DIUInt8Attr('poe_p2_pair_polarity_4'), # POE port 2 PR78 polarity. 0 = OPEN/NEGATIVE, 1 = POSITIVE.
+                  DIUInt8Attr('poe_p1_source'), # Port 1 POE source. 0 = UNKNOWN, 1 = INJECTOR, 2 = PSE, 3 = PSE3+, 4 = INVALID.
+                  DIUInt8Attr('poe_p2_source')] # Port 2 POE source. 0 = UNKNOWN, 1 = INJECTOR, 2 = PSE, 3 = PSE3+, 4 = INVALID.
+
+
+class BoundaryStatus(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Boundary Status Data Item Definition. Protected.
+        This data type is used to report boundary status of the system."""
+
+    type = 0x0176
+    definition = [DIUInt64Attr('network_time'),  # The timestamp when the sensor recorded the data. This value is represented in Network Time, which is roughly 15.65 picoseconds per tick.
+                 DIInt32Attr('x'),  # The signed x-coordinate in millimeters.
+                 DIInt32Attr('y'),  # The signed y-coordinate in millimeters.
+                 DIInt32Attr('z'),  # The signed z-coordinate in millimeters.
+                 DIUInt8Attr('status')]     # Current boundary status. 0 = NORMAL, 1 = WARNING, 2 = BREACHED.
+
+
+class PositionlessBoundaryStatus(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Positionless Boundary Status Data Item Definition. Protected.
+        This data type is used to report positionless boundary status of the system."""
+
+    type = 0x0177
+    definition = [DIUInt64Attr('network_time'),  # The timestamp when the sensor recorded the data. This value is represented in Network Time, which is roughly 15.65 picoseconds per tick.
+                 DIUInt8Attr('status')]     # Current boundary status. 0 = NORMAL, 1 = WARNING, 2 = BREACHED.
+
+
+class QuaternionV3(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Quaternion V3 Data Item Definition. Current in v4.0.
+       This data type is used to report quaternion data, either from on-chip sensors or other sources."""
+
+    type = 0x0178
+    definition = [DISerialNumberAttr('serial_number'), # The serial number of the reporting device.
+                  DIUInt64Attr('network_time'), # The timestamp when the sensor recorded the data. This value is represented in Network Time, which is roughly 15.65 picoseconds per tick.
+                  DIInt32Attr('x'), # The two's complement X quaternion value.
+                  DIInt32Attr('y'), # The two's complement Y quaternion value.
+                  DIInt32Attr('z'), # The two's complement Z quaternion value.
+                  DIInt32Attr('w'), # The two's complement W quaternion value.
+                  DIUInt8Attr('quaternion_type'), # An enumeration of all different types of quaternions. 0 = Using accelerometer and gyroscope not normalized. 1 = Using accelerometer and gyroscope normalized. 2 = Using accelerometer, gyroscope, and magnetometer normalized.  3 = Using phase data normalized.
+                  DIUInt16Attr('quality')] # The quality of the assessed quaternion from 0 to 10000.  If the quaternion is computed using an algorithm that does not support a quality calculation, then this value will be 0x4000.
+
+
+class UserDefinedV3(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol User Defined V3 Data Item Definition. Public.
+       This data type is used to report any user defined data bytes."""
+
+    type = 0x0179
+    definition = [DISerialNumberAttr('serial_number'),  # The serial number of the device sending the user-defined data.
+                  DIUInt64Attr('network_time'), # The network time of the user-defined data.
+                  DIVariableLengthBytesAttr('payload')]  # The format of the contents are defined by the user.
+
+
+class AccelerometerV3(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Accelerometer V3 Data Item Definition. Current in v4.5.
+       This data type is used to report the accelerometer data from any accelerometer agnostic of chip placement."""
+
+    type = 0x017A
+    definition = [DISerialNumberAttr('serial_number'), # The serial number of the reporting device.
+                  DIUInt64Attr('network_time'), # The timestamp when the sensor recorded the data. This value is represented in Network Time, which is roughly 15.65 picoseconds per tick.
+                  DIInt32Attr('x'), # The two's complement X accelerometer value.
+                  DIInt32Attr('y'), # The two's complement Y accelerometer value.
+                  DIInt32Attr('z'), # The two's complement Z accelerometer value.
+                  DIUInt8Attr('scale')] # The full-scale representation in Gs.
+
+
+class GyroscopeV3(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Gyroscope V2 Data Item Definition. Current in v4.5.
+       This data type is used to report the gyroscope data from any gyroscope agnostic of chip placement."""
+
+    type = 0x017B
+    definition = [DISerialNumberAttr('serial_number'), # The serial number of the reporting device.
+                  DIUInt64Attr('network_time'), # The timestamp when the sensor recorded the data. This value is represented in Network Time, which is roughly 15.65 picoseconds per tick.
+                  DIInt32Attr('x'), # The two's complement X gyroscope value.
+                  DIInt32Attr('y'), # The two's complement Y gyroscope value.
+                  DIInt32Attr('z'), # The two's complement Z gyroscope value.
+                  DIUInt16Attr('scale')] # The full-scale representation in Degrees Per Second.
+
+
+class MagnetometerV3(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Magnetometer V3 Data Item Definition. Current in v4.5.
+       This data type is used to report the magnetometer data from any magnetometer agnostic of chip placement."""
+
+    type = 0x017C
+    definition = [DISerialNumberAttr('serial_number'), # The serial number of the reporting device.
+                  DIUInt64Attr('network_time'), # The timestamp when the sensor recorded the data. This value is represented in Network Time, which is roughly 15.65 picoseconds per tick.
+                  DIInt32Attr('x'), # The two's complement X magnetometer value.
+                  DIInt32Attr('y'), # The two's complement Y magnetometer value.
+                  DIInt32Attr('z'), # The two's complement Z magnetometer value.
+                  DIUInt16Attr('scale')] # The full-scale representation in microtesla.
+
+
+class CommandWindowUsageReport(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Command Window Usage Report Data Item Definition.  Protected.
+       This data type is used to report information related to the transmission of command packets. Includes info on the command windows as well."""
+    
+    type = 0x017D
+    definition = [DIFloatAttr('average_used_windows'),   # The average number of command windows that have a preallocated use at any given time.
+                  DIFloatAttr('average_reused_transmissions'),   # The average number of simultaneous transmissions occurring to support spatially reused transmissions. a value of 1.0 indicates that on average only 1 transmission is occurring per command window where a command is actually available.
+                  DIFloatAttr('average_bytes_per_packet'),   # The average number of bytes in transmitted command packets.
+                  DIFloatAttr('average_command_drops_per_second'),   # Average number of commands that have been dropped per second because no command windows were available.
+                  DIUInt16Attr('preschedule_size'),  # The maximum number of command windows that the network will preallocate a use for.
+                  DIUInt16Attr('current_used_preschedule_slots')] # The number of command windows that currently have a preallocated use.
 
 
 class ImageDiscoveryV1(CDPDataItem):

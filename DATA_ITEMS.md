@@ -165,42 +165,6 @@ This data type contains information about the current states of a device.
 | temperature | 1B | The two's complement temperature in degrees Celsius. |
 | processor_usage | 1B | Percentage of processor usage from 0-100.<br/>A value of 255 represents an unknown value. |
 | error_patterns | 1XB | Array of current error states by their LED pattern. See [ErrorPattern](#errorpattern) for details. |
-### 0x0139 - AccelerometerV2
-CDP Data Item: Ciholas Data Protocol Accelerometer V2 Data Item Definition. Current in v3.3.   
-This data type is used to report the accelerometer data from an onboard MPU-9250.
-
-| Field Name    | Size | Description |
-|:---|:---:|:---|
-| serial_number | 4B | The serial number of the reporting device. |
-| network_time | 8B | The timestamp when the sensor recorded the data.<br/>This value is represented in Network Time, which is roughly 15.65 picoseconds per tick. |
-| x | 4B | The two's complement X accelerometer value. |
-| y | 4B | The two's complement Y accelerometer value. |
-| z | 4B | The two's complement Z accelerometer value. |
-| scale | 1B | The full-scale representation in Gs. |
-### 0x013A - GyroscopeV2
-CDP Data Item: Ciholas Data Protocol Gyroscope V2 Data Item Definition. Current in v3.3.   
-This data type is used to report the gyroscope data from an onboard MPU-9250.
-
-| Field Name    | Size | Description |
-|:---|:---:|:---|
-| serial_number | 4B | The serial number of the reporting device. |
-| network_time | 8B | The timestamp when the sensor recorded the data.<br/>This value is represented in Network Time, which is roughly 15.65 picoseconds per tick. |
-| x | 4B | The two's complement X gyroscope value. |
-| y | 4B | The two's complement Y gyroscope value. |
-| z | 4B | The two's complement Z gyroscope value. |
-| scale | 2B | The full-scale representation in Degrees Per Second. |
-### 0x013B - MagnetometerV2
-CDP Data Item: Ciholas Data Protocol Magnetometer V2 Data Item Definition. Current in v3.3.   
-This data type is used to report the magnetometer data from an onboard MPU-9250.
-
-| Field Name    | Size | Description |
-|:---|:---:|:---|
-| serial_number | 4B | The serial number of the reporting device. |
-| network_time | 8B | The timestamp when the sensor recorded the data.<br/>This value is represented in Network Time, which is roughly 15.65 picoseconds per tick. |
-| x | 4B | The two's complement X magnetometer value. |
-| y | 4B | The two's complement Y magnetometer value. |
-| z | 4B | The two's complement Z magnetometer value. |
-| scale | 2B | The full-scale representation in microtesla. |
 ### 0x013C - PressureV2
 CDP Data Item: Ciholas Data Protocol Pressure V2 Data Item Definition. Current in v3.3.   
 This data type is used to report the pressure measured by an onboard LPS25H.
@@ -355,6 +319,98 @@ This data type is used to report the position of the reporting device in polar c
 | anchor_count | 1B | The number of anchors involved in the calculation of this position. |
 | flags | 1B | 1 bit = inactive mode.<br/>1 bit = was not calculated.<br/>6 bits = unused. |
 | smoothing | 2B | The effective smoothing factor. |
+### 0x016A - BoundingBoxReport
+CDP Data Item: Ciholas Data Protocol Bounding Box Report Data Item Definition. Public.   
+This data type is used to report the bounding box parameters.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| min_x | 4B | The minimum x-coordinate of the bounding zone in millimeters. |
+| min_y | 4B | The minimum y-coordinate of the bounding zone in millimeters. |
+| min_z | 4B | The minimum z-coordinate of the bounding zone in millimeters. |
+| max_x | 4B | The maximum x-coordinate of the bounding zone in millimeters. |
+| max_y | 4B | The maximum y-coordinate of the bounding zone in millimeters. |
+| max_z | 4B | The maximum z-coordinate of the bounding zone in millimeters. |
+### 0x016B - BoundingCylinderReport
+CDP Data Item: Ciholas Data Protocol Bounding Cylinder Report Data Item Definition. Public.   
+This data type is used to report the bounding cylinder parameters.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| x | 4B | The x-coordinate of the bottom center of the cylinder in millimeters. |
+| y | 4B | The y-coordinate of the bottom center of the cylinder in millimeters. |
+| z | 4B | The z-coordinate of the bottom center of the cylinder in millimeters. |
+| radius | 4B | The radius of the cylinder in millimeters. |
+| height | 4B | The height of the cylinder in millimeters. |
+### 0x0171 - ImageDiscoveryV2
+CDP Data Item: Ciholas Data Protocol Image Discovery V2 Data Item Definition. Public.   
+This data type contains information to inform the CUWB Network about the images the device is currently running. The CUWB network will use this information to determine if the device needs a firmware upgrade.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| vid | 1B | Virtual Vendor ID for device images. |
+| pid | 1B | Virtual Product ID for device images. |
+| running_image_type | 1B | Type of the current running image. |
+| tlvs | XB | An array of TLV (Type Length Value) entries.<br/>Every entry will be prefixed with one byte for Type and one byte for Length. |
+### 0x0178 - QuaternionV3
+CDP Data Item: Ciholas Data Protocol Quaternion V3 Data Item Definition. Current in v4.0.   
+This data type is used to report quaternion data, either from on-chip sensors or other sources.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| serial_number | 4B | The serial number of the reporting device. |
+| network_time | 8B | The timestamp when the sensor recorded the data.<br/>This value is represented in Network Time, which is roughly 15.65 picoseconds per tick. |
+| x | 4B | The two's complement X quaternion value. |
+| y | 4B | The two's complement Y quaternion value. |
+| z | 4B | The two's complement Z quaternion value. |
+| w | 4B | The two's complement W quaternion value. |
+| quaternion_type | 1B | An enumeration of all different types of quaternions.<br/>0 = Using accelerometer and gyroscope not normalized.<br/>1 = Using accelerometer and gyroscope normalized.<br/>2 = Using accelerometer, gyroscope, and magnetometer normalized.<br/> 3 = Using phase data normalized. |
+| quality | 2B | The quality of the assessed quaternion from 0 to 10000.<br/> If the quaternion is computed using an algorithm that does not support a quality calculation, then this value will be 0x4000. |
+### 0x0179 - UserDefinedV3
+CDP Data Item: Ciholas Data Protocol User Defined V3 Data Item Definition. Public.   
+This data type is used to report any user defined data bytes.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| serial_number | 4B | The serial number of the device sending the user-defined data. |
+| network_time | 8B | The network time of the user-defined data. |
+| payload | XB | The format of the contents are defined by the user. |
+### 0x017A - AccelerometerV3
+CDP Data Item: Ciholas Data Protocol Accelerometer V3 Data Item Definition. Current in v4.5.   
+This data type is used to report the accelerometer data from any accelerometer agnostic of chip placement.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| serial_number | 4B | The serial number of the reporting device. |
+| network_time | 8B | The timestamp when the sensor recorded the data.<br/>This value is represented in Network Time, which is roughly 15.65 picoseconds per tick. |
+| x | 4B | The two's complement X accelerometer value. |
+| y | 4B | The two's complement Y accelerometer value. |
+| z | 4B | The two's complement Z accelerometer value. |
+| scale | 1B | The full-scale representation in Gs. |
+### 0x017B - GyroscopeV3
+CDP Data Item: Ciholas Data Protocol Gyroscope V2 Data Item Definition. Current in v4.5.   
+This data type is used to report the gyroscope data from any gyroscope agnostic of chip placement.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| serial_number | 4B | The serial number of the reporting device. |
+| network_time | 8B | The timestamp when the sensor recorded the data.<br/>This value is represented in Network Time, which is roughly 15.65 picoseconds per tick. |
+| x | 4B | The two's complement X gyroscope value. |
+| y | 4B | The two's complement Y gyroscope value. |
+| z | 4B | The two's complement Z gyroscope value. |
+| scale | 2B | The full-scale representation in Degrees Per Second. |
+### 0x017C - MagnetometerV3
+CDP Data Item: Ciholas Data Protocol Magnetometer V3 Data Item Definition. Current in v4.5.   
+This data type is used to report the magnetometer data from any magnetometer agnostic of chip placement.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| serial_number | 4B | The serial number of the reporting device. |
+| network_time | 8B | The timestamp when the sensor recorded the data.<br/>This value is represented in Network Time, which is roughly 15.65 picoseconds per tick. |
+| x | 4B | The two's complement X magnetometer value. |
+| y | 4B | The two's complement Y magnetometer value. |
+| z | 4B | The two's complement Z magnetometer value. |
+| scale | 2B | The full-scale representation in microtesla. |
 ### 0x8009 - ImageDiscoveryV1
 CDP Data Item: Ciholas Data Protocol Image Discovery V1 Data Item Definition. Public.   
 This data type contains information to inform the CUWB Network about the images the device is currently running. The CUWB network will use this information to determine if the device needs a firmware upgrade.
