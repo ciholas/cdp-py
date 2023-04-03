@@ -1161,7 +1161,7 @@ class PoeSystemStats(CDPDataItem):
 
 
 class ImageV2:
-    """Image Class V2 Definition. Public"""
+    """Image Class V2 Definition. Public."""
 
     definition = [DIUInt8Attr('image_type'), # The type of image this data represents.
                   DIFixedLengthStrAttr('version', 32), # The version string of the image, null-terminated. If the string is less than the max (32B), it is padded with junk data.

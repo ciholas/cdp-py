@@ -1,8 +1,9 @@
 CDP-PY Changelog
 --
 
-## HEAD
-* This is the place to add new notes, past versions should not be touched
+
+## 1.6.1
+* Bug Fixes
 
 ## 1.6.0
 * Added Image Discovery V2 (0x0171), and Image Notification V2 (0x0172)
