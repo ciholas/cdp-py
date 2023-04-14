@@ -2,6 +2,9 @@ CDP-PY Changelog
 --
 
 
+## 1.6.2
+* Added DeviceData data item (0x8042)
+
 ## 1.6.1
 * Bug Fixes
 

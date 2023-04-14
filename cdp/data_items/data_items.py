@@ -1495,6 +1495,17 @@ class SetDiagnosticLED(CDPDataItem):
                                          led_period, red, green, blue))
 
 
+class DeviceData(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Device Data Data Item Definition. Protected.
+       This data type contains general and specific info for device data types."""
+
+    type = 0x8042
+    definition = [DIUInt64Attr('nt64'), # Reception time at the anchor.
+                  DISignalStrengthAttr('signal_strength'), # Signal Strength of the reception.
+                  DIUInt8Attr('interface_id'), # Interface ID of the receiver.
+                  DIUInt8Attr('nt_quality'), # The quality of the reported Network Time.
+                  DIVariableLengthBytesAttr('device_data')] # Contents of the Device Data UWB packet.
+
 
 # When adding a new data item to cdp-py, follow the template given below.
 # class <classname>(CDPDataItem):
