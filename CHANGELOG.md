@@ -3,6 +3,9 @@ CDP-PY Changelog
 
 ## HEAD
 
+## 1.7.1
+* Fixed PyPi release process
+
 ## 1.7.0
 * Modified cdp class data decoding to increase speed/performance
 * Modified CiholasSerialNumber to Cache string representation
