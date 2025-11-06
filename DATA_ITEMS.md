@@ -465,3 +465,46 @@ This data type is emitted by an anchor when it receives a tag's UWB Beacon.  The
 | signal_strength | 12B | The signal strength data of the reception. |
 | interface_id | 1B | Identifier of the interface on which this anchor received the UWB Beacon. |
 | payload | XB | Additional data received in the UWB Beacon. |
+### 0x80B2 - TickV5
+CDP Data Item: Ciholas Data Protocol Tick V5 Data Item Definition. Public.   
+This data type is emitted by an anchor when it transmits a Network Time Synchronization packet.  The serial number in the CDP Packet header will be the serial number of the transmitting anchor.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| nt64 | 8B | The Global Network Time at which this Network Time packet was emitted. |
+| dt64 | 8B | The Decawave Time at which this Network Time packet was emitted. |
+| nt_quality | 1B | The quality of the Network Time Synchronization at the time of this transmission. |
+| interface_id | 1B | The identifier for the interface through which the device transmitted this Network Time packet. |
+| sequence_number | 1B | User to pair a TickV5 to a TimedRxV6. |
+### 0x80B3 - TimedRxV6
+CDP Data Item: Ciholas Data Protocol Timed Reception V6 Data Item Definition. Public.   
+This data type is emitted by an anchor when it receives another anchor's Network Time Synchronization packet over UWB.  The serial number in the CDP Packet header will be the serial number of the receiving anchor.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| rx_dt64 | 8B | The Decawave Time at which the UWB Packet was received. |
+| rx_nt64 | 8B | The Global Network Time at which the UWB Packet was received. |
+| source_serial_number | 4B | The serial number of the anchor that transmitted the UWB Packet. |
+| source_interface_id | 1B | Identifier of the interface from which the transmitting anchor transmitted the UWB Packet. |
+| signal_strength | 12B | Signal Strength data of the reception. |
+| interface_id | 1B | Identifier of the interface on which the receiving anchor received the UWB packet. |
+| rx_nt_quality | 1B | The quality of the Network Time synchronization of the receiving anchor at the time of this transmission. |
+| rx_packet_type | 1B | The type of UWB packet received. |
+| tx_sequence | 1B | Used to pair a TickV5 to a TimedRxV6. |
+### 0x80D4 - DeviceStatusV3
+CDP Data Item: Ciholas Data Protocol Device Status V3 Data Item Definition. Public.   
+This data type contains information about the current states of a device.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| serial_number | 4B | The serial number of the reporting device. |
+| memory | 4B | How much memory is free on the device. |
+| flags | 4B | Device Status Flags. |
+| minutes_remaining | 2B | When charging (flags.charging=1) this indicates the estimate of minutes until the device is fully charged.<br/>When discharging (flags.charging=0) this indicates the estimate of minutes until the device is fully discharged.<br/>When 65535, the time remaining is unknown. |
+| battery_percentage | 1B | Percentage of battery charge left from 0-100.<br/>A value of 255 means no measurable battery is present. |
+| temperature | 1B | The two's complement temperature in degrees Celsius. |
+| processor_usage | 1B | Percentage of processor usage from 0-100.<br/>A value of 255 represents an unknown value. |
+| missed_phase_commands | 2B | Count of the number of commands missed while phased. |
+| missed_recovery_commands | 2B | Count of the number of commands missed whilst recovering phasing. |
+| max_widening_factor | 2B | Highest window widening factor used to recover phasing. |
+| error_patterns | 1XB | Array of current error states by their LED pattern. See [ErrorPattern](#errorpattern) for details. |

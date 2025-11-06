@@ -1,6 +1,18 @@
 CDP-PY Changelog
 --
 
+## HEAD
+
+## 1.7.0
+* Modified cdp class data decoding to increase speed/performance
+* Modified CiholasSerialNumber to Cache string representation
+* Modified CiholasSerialNumber to implement boolean operators
+* Modified CiholasSerialNumber to increase speed/performance
+* Added DeviceData support
+* Modified DeviceData to use the DeviceDataItem class
+* Added TickV5 (0x80B2) and TimedRxV6 (0x80B3) data items
+* Changed CommandWindowUsageReport (0x017D) average_used_windows field name to percentage_used_windows
+* Added DeviceStatusV3 data item (0x80D4)
 
 ## 1.6.2
 * Added DeviceData data item (0x8042)

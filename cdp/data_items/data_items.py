@@ -3,6 +3,7 @@
 # pylint: disable=trailing-whitespace, too-few-public-methods, unused-wildcard-import
 
 from cdp.cdp import *
+from cdp.device_data_items import DeviceDataItem
 
 class MPUAccelerometerV1(CDPDataItem):
     """CDP Data Item: Ciholas Data Protocol MPU Accelerometer V1 Data Item Definition. Replaced by 0x0008 in v2.0.
@@ -1391,7 +1392,7 @@ class CommandWindowUsageReport(CDPDataItem):
        This data type is used to report information related to the transmission of command packets. Includes info on the command windows as well."""
     
     type = 0x017D
-    definition = [DIFloatAttr('average_used_windows'),   # The average number of command windows that have a preallocated use at any given time.
+    definition = [DIFloatAttr('percentage_used_windows'),   # The percentage of command windows that have a preallocated use at any given time.
                   DIFloatAttr('average_reused_transmissions'),   # The average number of simultaneous transmissions occurring to support spatially reused transmissions. a value of 1.0 indicates that on average only 1 transmission is occurring per command window where a command is actually available.
                   DIFloatAttr('average_bytes_per_packet'),   # The average number of bytes in transmitted command packets.
                   DIFloatAttr('average_command_drops_per_second'),   # Average number of commands that have been dropped per second because no command windows were available.
@@ -1504,7 +1505,137 @@ class DeviceData(CDPDataItem):
                   DISignalStrengthAttr('signal_strength'), # Signal Strength of the reception.
                   DIUInt8Attr('interface_id'), # Interface ID of the receiver.
                   DIUInt8Attr('nt_quality'), # The quality of the reported Network Time.
-                  DIVariableLengthBytesAttr('device_data')] # Contents of the Device Data UWB packet.
+                  DIUInt8Attr('typing'), # No idea what this does.
+                  DISerialNumberAttr('device_id'), # The serial number of the device the DeviceData is for.
+                  DIVariableLengthBytesAttr('data')] # Contents of the Device Data UWB packet.
+    dd_classes = {}
+
+    def __str__(self):
+        return "0x{:04X}, {}, {}, {}, {}, {}, {}, {}".format( \
+            self.cdp_header_serial, self.type,                \
+            self.nt64,                                        \
+            self.signal_strength,                             \
+            self.interface_id,                                \
+            self.nt_quality,                                  \
+            self.typing,                                      \
+            self.device_data)
+
+    def _decode(self):
+        for attr in self.definition:
+            if attr.name == "data":
+                sequence_num, tlv_header = struct.unpack("<BH", self.di_data[:3])
+                tl = format(tlv_header, '016b')
+                dd_type = int(tl[:10], 2)
+                dd_len = int(tl[10:], 2)
+                self.di_data = self.di_data[3:]
+
+                if len(self.di_data) < dd_len:
+                    print("Type 0x{:02X}, Expected data size: {}, Actual data size: {}".format(dd_type, dd_len, len(self.di_data)))
+
+                try:
+                    dd_class = DeviceData.dd_classes[dd_type]
+                except KeyError:
+                    #Unregistered unrecognized type that needs a DeviceDataItem class
+                    class_name = 'Unknown0x{:02X}'.format(dd_type)
+                    dd_class = type(class_name, (DeviceDataItem,), dict(type=dd_type))
+                    DeviceData.dd_classes[dd_type] = dd_class
+
+                self.device_data = dd_class(self.device_id, sequence_num, self.di_data)
+            else:
+                value, size = attr._decode(self.di_data)
+                self.di_data = self.di_data[size:]
+                setattr(self, attr.name, value)
+        self.di_data = None
+
+    def _encode(self):
+        data = b''
+        for attr in self.definition:
+            if attr.name == "data":
+                data += self.device_data._encode()
+            else:
+                value = getattr(self, attr.name)
+                data += attr._encode(value)
+        self.di_size = len(data)
+        return struct.pack("<HH", self.type, self.di_size) + data
+
+    @classmethod
+    def register_dd_item(cls, dd_class):
+        cls.dd_classes[dd_class.type] = dd_class
+
+    @classmethod
+    def get_known_dd_types(cls):
+        string_list = []
+        for key in list(sorted(cks.dd_classes.keys())):
+            string_list.append("0x{:02X}".format(key))
+        print(', '.join(string_list))
+
+
+class TickV5(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Tick V5 Data Item Definition. Public.
+       This data type is emitted by an anchor when it transmits a Network Time Synchronization packet.  The serial number in the CDP Packet header will be the serial number of the transmitting anchor."""
+
+    type = 0x80B2
+    definition = [DIUInt64Attr('nt64'), # The Global Network Time at which this Network Time packet was emitted.
+                  DIUInt64Attr('dt64'), # The Decawave Time at which this Network Time packet was emitted.
+                  DIUInt8Attr('nt_quality'), # The quality of the Network Time Synchronization at the time of this transmission.
+                  DIUInt8Attr('interface_id'), # The identifier for the interface through which the device transmitted this Network Time packet.
+                  DIUInt8Attr('sequence_number')] # User to pair a TickV5 to a TimedRxV6.
+
+    def __str__(self):
+        return "0x{:04X}, {}, {}, {}, {}, {}, {}".format( \
+            self.cdp_header_serial, self.type,      \
+            self.nt64,                              \
+            self.dt64,                              \
+            self.nt_quality,                        \
+            self.interface_id,                      \
+            self.sequence_number)
+
+
+class TimedRxV6(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Timed Reception V6 Data Item Definition. Public.
+       This data type is emitted by an anchor when it receives another anchor's Network Time Synchronization packet over UWB.  The serial number in the CDP Packet header will be the serial number of the receiving anchor."""
+
+    type = 0x80B3
+    definition = [DIUInt64Attr('rx_dt64'), # The Decawave Time at which the UWB Packet was received.
+                  DIUInt64Attr('rx_nt64'), # The Global Network Time at which the UWB Packet was received.
+                  DISerialNumberAttr('source_serial_number'), # The serial number of the anchor that transmitted the UWB Packet.
+                  DIUInt8Attr('source_interface_id'), # Identifier of the interface from which the transmitting anchor transmitted the UWB Packet.
+                  DISignalStrengthAttr('signal_strength'), # Signal Strength data of the reception.
+                  DIUInt8Attr('interface_id'), # Identifier of the interface on which the receiving anchor received the UWB packet.
+                  DIUInt8Attr('rx_nt_quality'), # The quality of the Network Time synchronization of the receiving anchor at the time of this transmission.
+                  DIUInt8Attr('rx_packet_type'), # The type of UWB packet received.
+                  DIUInt8Attr('tx_sequence')] # Used to pair a TickV5 to a TimedRxV6.
+
+    def __str__(self):
+        return "0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}".format( \
+            self.cdp_header_serial, self.type,  \
+            self.rx_dt64,                       \
+            self.rx_nt64,                       \
+            self.source_serial_number,          \
+            self.source_interface_id,           \
+            self.signal_strength,               \
+            self.interface_id,                  \
+            self.rx_nt_quality,                 \
+            self.rx_packet_type,                \
+            self.tx_sequence)
+
+
+class DeviceStatusV3(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Device Status V3 Data Item Definition. Public.
+       This data type contains information about the current states of a device."""
+
+    type = 0x80D4
+    definition = [DISerialNumberAttr('serial_number'), # The serial number of the reporting device.
+                  DIUInt32Attr('memory'), # How much memory is free on the device.
+                  DIUInt32Attr('flags'), # Device Status Flags.
+                  DIUInt16Attr('minutes_remaining'), # When charging (flags.charging=1) this indicates the estimate of minutes until the device is fully charged. When discharging (flags.charging=0) this indicates the estimate of minutes until the device is fully discharged. When 65535, the time remaining is unknown.
+                  DIUInt8Attr('battery_percentage'), # Percentage of battery charge left from 0-100. A value of 255 means no measurable battery is present.
+                  DIInt8Attr('temperature'), # The two's complement temperature in degrees Celsius.
+                  DIUInt8Attr('processor_usage'), # Percentage of processor usage from 0-100. A value of 255 represents an unknown value.
+                  DIUInt16Attr('missed_phase_commands'), # Count of the number of commands missed while phased.
+                  DIUInt16Attr('missed_recovery_commands'), # Count of the number of commands missed whilst recovering phasing.
+                  DIUInt16Attr('max_widening_factor'), # Highest window widening factor used to recover phasing.
+                  DIListAttr('error_patterns', ErrorPattern)]  # Array of current error states by their LED pattern.
 
 
 # When adding a new data item to cdp-py, follow the template given below.

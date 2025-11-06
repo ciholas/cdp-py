@@ -2,53 +2,58 @@
 # Licensed under: creativecommons.org/licenses/by/4.0
 # pylint: disable=trailing-whitespace, too-few-public-methods
 
-from collections import defaultdict
+from collections import defaultdict, deque
 import struct
 from cdp.ciholas_serial_number import CiholasSerialNumber
 from math import log10
+
+unpack_cdp_header  = struct.Struct("<II8sI").unpack
+unpack_data_header = struct.Struct('<HH').unpack
 
 class CDP():
     """CDP : Ciholas Data Protocol Python Class Definition"""
 
     data_item_classes = {}
+    cdp_header_size = 20
+    di_header_size = 4
 
     def __init__(self, data=None, serial_number=0):
         self.sequence = 0  # 4B - unsigned integer sequence number
         self.serial_number = CiholasSerialNumber(serial_number)
-        self.data_items = []
+        self.data_items = deque([])
         self.data_items_by_type = defaultdict(list)
 
         if data is not None:
             self.decode(data)
 
     def decode(self, data):
-        cdp_header_size = 20
 
         # Check if the packet is at least large enough to hold a CDP header
-        if len(data) < cdp_header_size:
+        data_length = len(data)
+        if data_length < self.cdp_header_size:
             raise ValueError("Packet Size Error")
 
         # Get CDP header
-        _mark, self.sequence, _string, serial = struct.unpack("<II8sI", data[:cdp_header_size])
+        _mark, self.sequence, _string, serial = unpack_cdp_header( data[:self.cdp_header_size])
 
         if _mark != 0x3230434c:
             raise ValueError("CDP Header - Unrecognized Mark: 0x{:04x}".format(_mark))
 
-        _string = _string.decode()
-        if _string != "CDP0002\0" and _string != "LCM_SELF":
-            raise ValueError("CDP Header - Unrecognized String: {}".format(_string))
+        if _string != b'CDP0002\x00' and _string != b'LCM_SELF' :
+            raise ValueError(f"CDP Header - Unrecognized String: {_string}")
 
         self.serial_number = CiholasSerialNumber(serial)
-        data = data[cdp_header_size:]
+        current_idx = self.cdp_header_size
 
-        di_header_size = 4
-        while len(data) >= di_header_size:
+
+
+        while data_length - current_idx >= self.di_header_size:
             # Get data item header
-            di_type, di_size = struct.unpack("<HH", data[:di_header_size])
-            data = data[di_header_size:]
+            di_type, di_size = unpack_data_header( data[current_idx:(current_idx+self.di_header_size)] )
+            current_idx += self.di_header_size
 
             # Check if size of the remaining data matches the size specified in the data item header
-            if len(data) < di_size:
+            if data_length - current_idx < di_size:
                 print("Type: 0x{:04X}, Expected data size: {}, Actual data size: {}".format(di_type, di_size, len(data)))
                 break
 
@@ -64,12 +69,12 @@ class CDP():
                 # Register new CDP data item class
                 CDP.data_item_classes[di_type] = di_class
 
-            data_item = di_class(data[:di_size])
+            data_item = di_class(data[current_idx:(current_idx+di_size)])
             self.add_data_item(data_item)
-            data = data[di_size:]
+            current_idx += di_size
 
         # Check if there is no more data available to read
-        if data:
+        if data_length - current_idx > 0 :
             raise ValueError("Incomplete CDP Packet")
 
     def encode(self):
