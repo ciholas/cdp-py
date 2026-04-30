@@ -2,10 +2,17 @@ from cdp import *
 from cdp.data_items import *
 
 from cdp.device_data_items import *
-module_files = glob.glob(dirname(__file__)+"/*.py")
+
+# Include .so's such that Cythonized cdp-py can still be properly imported
+module_files = glob.glob(dirname(__file__)+"/*.py") + glob.glob(dirname(__file__)+"/*.so")
 for module_file in module_files:
-    if module_file.endswith('device_data_items.py'):
-        module_name = basename(module_file)[:-3]
+    if 'device_data_items' in module_file:
+        module_name = ''
+        if module_file.endswith('.py'):
+            module_name = basename(module_file)[:-3]
+        else:
+            # Cython outputs to module_name.cpython-python_version-platform.so
+            module_name = basename(module_file).split(".cpython")[0]
 
         # Import the module
         module = importlib.import_module(__package__+'.'+module_name)
@@ -24,10 +31,16 @@ for module_file in module_files:
 
 try:
     from cdp.private_network_commands import *
-    module_files = glob.glob(dirname(__file__)+"/*.py")
+    # Include .so's such that Cythonized cdp-py can still be properly imported
+    module_files = glob.glob(dirname(__file__)+"/*.py") + glob.glob(dirname(__file__)+"/*.so")
     for module_file in module_files:
-        if module_file.endswith('network_commands.py'):
-            module_name = basename(module_file)[:-3]
+        if 'network_commands' in module_file:
+            module_name = ''
+            if module_file.endswith('.py'):
+                module_name = basename(module_file)[:-3]
+            else:
+                # Cython outputs to module_name.cpython-python_version-platform.so
+                module_name = basename(module_file).split(".cpython")[0]
 
             # Import the module
             module = importlib.import_module(__package__+'.'+module_name)

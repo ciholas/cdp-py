@@ -47,6 +47,13 @@ Image Class Definition. Public.
 | type | 1B | The type of image this data represents.<br/>0 = Recover.<br/>1 = Bootloader.<br/>2 = Firmware.<br/>3 = Almanac.<br/>4 = Application. |
 | version | 32B | The version string of the image, null-terminated.<br/>If the string is less than the max (32B), it is padded with junk data. |
 | sha1 | 20B | The IVSHA1 of the image with a maximum size of 20B. |
+### XyCoordinate
+XY Coordinate Class Definition. Public.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| x | 4B | X value for this vertex, in mm. |
+| y | 4B | Y value for this vertex, in mm. |
 ### 0x010D - NodeStatusChangeV2
 CDP Data Item: Ciholas Data Protocol Node Status Change V2 Data Item Definition. Current in v3.3.   
 This data type is used to report when the status for a node has changed.
@@ -491,6 +498,17 @@ This data type is emitted by an anchor when it receives another anchor's Network
 | rx_nt_quality | 1B | The quality of the Network Time synchronization of the receiving anchor at the time of this transmission. |
 | rx_packet_type | 1B | The type of UWB packet received. |
 | tx_sequence | 1B | Used to pair a TickV5 to a TimedRxV6. |
+### 0x80C0 - DeviceColor
+CDP Data Item: Ciholas Data Protocol Device Color Data Item Definition. Public.   
+This data type is used to state what color a device should be rendered as in the CUWB Viewer.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| serial_number | 4B | The serial number of the device. |
+| red | 1B | The red value for the device color. |
+| green | 1B | The green value for the device color. |
+| blue | 1B | The blue value for the device color. |
+| alpha | 1B | The transparency for the device color. |
 ### 0x80D4 - DeviceStatusV3
 CDP Data Item: Ciholas Data Protocol Device Status V3 Data Item Definition. Public.   
 This data type contains information about the current states of a device.
@@ -508,3 +526,55 @@ This data type contains information about the current states of a device.
 | missed_recovery_commands | 2B | Count of the number of commands missed whilst recovering phasing. |
 | max_widening_factor | 2B | Highest window widening factor used to recover phasing. |
 | error_patterns | 1XB | Array of current error states by their LED pattern. See [ErrorPattern](#errorpattern) for details. |
+### 0x80DA - ClearDeviceColor
+CDP Data Item: Ciholas Data Protocol Clear Device Color Data Item Definition. Public.   
+This data type is used to clear colors set with the CDP Device Color data item.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| serial_number | 4B | The serial number of the device. |
+| flags | 1B | Bit 7 = ignore serial number and clear all device colors, 6-0 unused. |
+	Methods:
+	  is_clear_all(self)
+	    Returns true if the clear is set to clear all device colors.
+### 0x80DB - GeofencerZoneInfo
+CDP Data Item: Ciholas Data Protocol Geofencer Zone Info Data Item Definition. Public.   
+This data type contains information about zones for a running Geofencer instance.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| zone_id | 2B | Integer ID of this zone. |
+| zone_name | 50B | Name of this zone. |
+| z_min | 4B | Minimum Z value in millimeters. |
+| z_max | 4B | Maximum Z value in millimeters. |
+| hysteresis | 4B | Hysteresis value applied to this zone, in millimeters. |
+| vertices | 8XB | Ordered list of XY vertices (int32_t tuple), in millimeters, that defines the zone's boundary. See [XyCoordinate](#xycoordinate) for details. |
+### 0x80DC - TagZoneInfo
+CDP Data Item: Ciholas Data Protocol Tag Zone Info Data Item Definition. Public.   
+This data type contains information about tag zones for a running Geofencer instance.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| serial_number | 4B | Serial number of the tag. |
+| zone_list | XB | List of Zone ID's (uint16_t).<br/> At the time this packet is sent out, the tag is inside every zone in this list. |
+### 0x80DD - DrawPrism
+CDP Data Item: Ciholas Data Protocol Draw Prism Data Item Definition. Public.   
+This data type contains information about a prism object to be rendered in the CUWB Viewer.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| name | 50B | String name to assign to this prism. |
+| red | 1B | Red value of prism color. |
+| green | 1B | Green value of prism color. |
+| blue | 1B | Blue value of prism color. |
+| alpha | 1B | Alpha value of prism color. |
+| z_min | 4B | Minimum Z value in millimeters. |
+| z_max | 4B | Maximum Z value in millimeters. |
+| vertices | 8XB | List of XY vertices (int32_t tuples) that define the top and bottom faces of the prism.<br/>Values in millimeters. See [XyCoordinate](#xycoordinate) for details. |
+### 0x80DE - ClearObject
+CDP Data Item: Ciholas Data Protocol Clear Object Data Item Definition. Public.   
+This data type tells the CUWB Viewer to clear an object by name from its list.
+
+| Field Name    | Size | Description |
+|:---|:---:|:---|
+| name | 50B | Name of the object to clear. |

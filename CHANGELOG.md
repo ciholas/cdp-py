@@ -1,7 +1,13 @@
 CDP-PY Changelog
 --
 
-## HEAD
+
+## 1.8.0
+* Added support for Cython compiled modules in __init__.py files
+* Added GeofencerZoneInfo data item (0x80DB)
+* Added TagZoneInfo data item (0x80DC)
+* Added DrawPrism data item (0x80DD)
+* Added ClearObject data item (0x80DE)
 
 ## 1.7.1
 * Fixed PyPi release process

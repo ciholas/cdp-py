@@ -130,6 +130,7 @@ class UserDataWithTimestamp(DeviceDataItem):
     type = 0x0C
     definition = [DIUInt16Attr('network_time'), #Small NT representation of network time
                   DIVariableLengthBytesAttr('data')] #Contents defined by user
+
 class DeviceStatusV2(DeviceDataItem):
     type = 0x0D
     definition = [DIUInt32Attr('memory'),   #How much memory is free
@@ -142,3 +143,11 @@ class DeviceStatusV2(DeviceDataItem):
                   DIUInt16Attr('missed_recovery_commands'), #How many commands missed whilst recovering phasing
                   DIUInt16Attr('max_widening_factor'),      #Highest window widening factor used to recover phasing
                   DIVariableLengthBytesAttr('error_led')]   #Array of the error states by their LED pattern.
+    
+class DeviceDataDeviceAttributesResponse(DeviceDataItem):
+    type = 0x0E
+    definition = [DIUInt32Attr('min_beacon_period'), #The minimum period the device can beacon at
+                  DIUInt16Attr('jurisdiction'),      #The jurisdiction of the device for RF regulations
+                  DIUInt16Attr('color'),             #The color of the device's enclosure
+                  DIUInt32Attr('epoch_timestamp'),    #The Epoch timestamp at which the device was bobbed
+                  DIVariableLengthStrAttr('sku')]    #The stock-keeping unit for the device

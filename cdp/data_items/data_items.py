@@ -1390,7 +1390,7 @@ class MagnetometerV3(CDPDataItem):
 class CommandWindowUsageReport(CDPDataItem):
     """CDP Data Item: Ciholas Data Protocol Command Window Usage Report Data Item Definition.  Protected.
        This data type is used to report information related to the transmission of command packets. Includes info on the command windows as well."""
-    
+
     type = 0x017D
     definition = [DIFloatAttr('percentage_used_windows'),   # The percentage of command windows that have a preallocated use at any given time.
                   DIFloatAttr('average_reused_transmissions'),   # The average number of simultaneous transmissions occurring to support spatially reused transmissions. a value of 1.0 indicates that on average only 1 transmission is occurring per command window where a command is actually available.
@@ -1619,6 +1619,17 @@ class TimedRxV6(CDPDataItem):
             self.rx_packet_type,                \
             self.tx_sequence)
 
+class DeviceColor(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Device Color Data Item Definition. Public.
+       This data type is used to state what color a device should be rendered as in the CUWB Viewer."""
+
+    type = 0x80C0
+
+    definition = [DISerialNumberAttr('serial_number'), # The serial number of the device.
+                  DIUInt8Attr('red'), # The red value for the device color.
+                  DIUInt8Attr('green'), # The green value for the device color.
+                  DIUInt8Attr('blue'), # The blue value for the device color.
+                  DIUInt8Attr('alpha')] # The transparency for the device color.
 
 class DeviceStatusV3(CDPDataItem):
     """CDP Data Item: Ciholas Data Protocol Device Status V3 Data Item Definition. Public.
@@ -1637,6 +1648,70 @@ class DeviceStatusV3(CDPDataItem):
                   DIUInt16Attr('max_widening_factor'), # Highest window widening factor used to recover phasing.
                   DIListAttr('error_patterns', ErrorPattern)]  # Array of current error states by their LED pattern.
 
+class ClearDeviceColor(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Clear Device Color Data Item Definition. Public.
+       This data type is used to clear colors set with the CDP Device Color data item."""
+
+    type = 0x80DA
+    definition = [DISerialNumberAttr('serial_number'), # The serial number of the device.
+                  DIUInt8Attr('flags')]  # Bit 7 = ignore serial number and clear all device colors, 6-0 unused.
+
+    def is_clear_all(self):
+        """Returns true if the clear is set to clear all device colors."""
+        return (self.flags >> 7) == 1
+
+class XyCoordinate():
+    """XY Coordinate Class Definition. Public."""
+    definition = [DIInt32Attr('x'), # X value for this vertex, in mm.
+                  DIInt32Attr('y')] # Y value for this vertex, in mm.
+
+    def __init__(self, x=0, y=0):
+        self.x = x
+        self.y = y
+
+    def __str__(self):
+        return ", ".join(str(getattr(self, attr.name)) for attr in self.definition)
+
+class GeofencerZoneInfo(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Geofencer Zone Info Data Item Definition. Public.
+       This data type contains information about zones for a running Geofencer instance."""
+
+    type = 0x80DB
+    definition = [DIUInt16Attr('zone_id'), # Integer ID of this zone.
+                  DIFixedLengthStrAttr('zone_name', 50), # Name of this zone.
+                  DIInt32Attr('z_min'), # Minimum Z value in millimeters.
+                  DIInt32Attr('z_max'), # Maximum Z value in millimeters.
+                  DIUInt32Attr('hysteresis'), # Hysteresis value applied to this zone, in millimeters.
+                  DIListAttr('vertices', XyCoordinate)] # Ordered list of XY vertices (int32_t tuple), in millimeters, that defines the zone's boundary.
+
+class TagZoneInfo(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Tag Zone Info Data Item Definition. Public.
+       This data type contains information about tag zones for a running Geofencer instance."""
+
+    type = 0x80DC
+    definition = [DISerialNumberAttr('serial_number'), # Serial number of the tag.
+                  DIUInt16ListAttr('zone_list')]       # List of Zone ID's (uint16_t).  At the time this packet is sent out, the tag is inside every zone in this list.
+
+class DrawPrism(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Draw Prism Data Item Definition. Public.
+       This data type contains information about a prism object to be rendered in the CUWB Viewer."""
+
+    type = 0x80DD
+    definition = [DIFixedLengthStrAttr('name', 50), # String name to assign to this prism.
+                  DIUInt8Attr('red'), # Red value of prism color.
+                  DIUInt8Attr('green'), # Green value of prism color.
+                  DIUInt8Attr('blue'), # Blue value of prism color.
+                  DIUInt8Attr('alpha'), # Alpha value of prism color.
+                  DIInt32Attr('z_min'), # Minimum Z value in millimeters.
+                  DIInt32Attr('z_max'), # Maximum Z value in millimeters.
+                  DIListAttr('vertices', XyCoordinate)] # List of XY vertices (int32_t tuples) that define the top and bottom faces of the prism. Values in millimeters.
+
+class ClearObject(CDPDataItem):
+    """CDP Data Item: Ciholas Data Protocol Clear Object Data Item Definition. Public.
+       This data type tells the CUWB Viewer to clear an object by name from its list."""
+
+    type = 0x80DE
+    definition = [DIFixedLengthStrAttr('name', 50)] # Name of the object to clear.
 
 # When adding a new data item to cdp-py, follow the template given below.
 # class <classname>(CDPDataItem):
