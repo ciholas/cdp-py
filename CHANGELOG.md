@@ -2,6 +2,9 @@ CDP-PY Changelog
 --
 
 
+## 1.8.1
+* Fixed PyPi release process
+
 ## 1.8.0
 * Added support for Cython compiled modules in __init__.py files
 * Added GeofencerZoneInfo data item (0x80DB)
